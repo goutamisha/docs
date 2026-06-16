@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Registration Handoff — Query-Param Redirect vs JSON API</title>
+<style>
+  :root{
+    --saffron:#E8730C; --saffron-dk:#C85A06; --maroon:#7A2410; --maroon-dk:#5A1808;
+    --cream:#FBF5EC; --cream-2:#FFFDF9; --gold:#E3A53B;
+    --ink:#2A211C; --muted:#7a6f66; --border:#ecd9c4;
+    --good:#2E7D32; --good-bg:#eef7ef; --bad:#C0392B; --bad-bg:#fbeeec;
+    --warn:#B9770A; --warn-bg:#fdf4e3;
+    --code-bg:#fff4e7;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:linear-gradient(160deg,#f3e8da 0%,#eef0f2 100%);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;line-height:1.62;font-size:16px;}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 18px 64px;}
+
+  /* Header */
+  .hero{margin:0 -18px 34px;padding:48px 40px 40px;
+    background:linear-gradient(135deg,var(--maroon) 0%,var(--saffron-dk) 70%,var(--saffron) 100%);
+    color:#fff;position:relative;overflow:hidden;}
+  .hero:after{content:"";position:absolute;right:-60px;top:-60px;width:280px;height:280px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.16),transparent 65%);}
+  .hero .kicker{text-transform:uppercase;letter-spacing:.22em;font-size:.72rem;font-weight:700;opacity:.9;margin:0 0 10px;}
+  .hero h1{margin:0;font-size:2.15rem;line-height:1.18;font-weight:750;max-width:760px;}
+  .hero p{margin:14px 0 0;font-size:1.04rem;max-width:720px;opacity:.95;}
+  .hero .tags{margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;}
+  .tag{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);padding:5px 13px;border-radius:30px;font-size:.78rem;font-weight:600;}
+
+  h2{font-size:1.45rem;margin:2.2em 0 .2em;color:var(--maroon);display:flex;align-items:center;gap:12px;}
+  h2 .dot{width:12px;height:12px;border-radius:50%;background:var(--saffron);flex:0 0 auto;}
+  .sub{color:var(--muted);margin:.2em 0 1.2em;font-size:.96rem;}
+
+  /* TL;DR card */
+  .tldr{background:var(--cream-2);border:1px solid var(--border);border-left:6px solid var(--saffron);
+    border-radius:12px;padding:22px 26px;margin:6px 0 8px;box-shadow:0 2px 10px rgba(122,36,16,.06);}
+  .tldr h3{margin:0 0 8px;color:var(--saffron-dk);font-size:1.05rem;}
+  .tldr p{margin:.4em 0;}
+
+  /* Two-column cards */
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin:18px 0;}
+  @media(max-width:760px){.cols{grid-template-columns:1fr;}}
+  .card{background:var(--cream-2);border:1px solid var(--border);border-radius:14px;overflow:hidden;
+    box-shadow:0 3px 14px rgba(122,36,16,.07);display:flex;flex-direction:column;}
+  .card .head{padding:18px 22px;color:#fff;}
+  .card.a .head{background:linear-gradient(135deg,#8a8f96,#6c727a);}
+  .card.b .head{background:linear-gradient(135deg,var(--saffron),var(--saffron-dk));}
+  .card .head .label{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;opacity:.92;font-weight:700;}
+  .card .head h3{margin:5px 0 0;font-size:1.2rem;}
+  .card .head .how{margin:8px 0 0;font-size:.86rem;opacity:.95;font-weight:400;}
+  .card .body{padding:18px 22px;flex:1;}
+  .plist{list-style:none;padding:0;margin:0 0 6px;}
+  .plist li{padding:5px 0 5px 26px;position:relative;font-size:.93rem;}
+  .plist.pro li:before{content:"✔";position:absolute;left:0;color:var(--good);font-weight:700;}
+  .plist.con li:before{content:"✕";position:absolute;left:0;color:var(--bad);font-weight:700;}
+  .plist-title{font-size:.74rem;text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin:14px 0 4px;}
+  .plist-title.pro{color:var(--good);} .plist-title.con{color:var(--bad);}
+  .verdict-pill{display:inline-block;margin-top:6px;padding:6px 14px;border-radius:30px;font-size:.82rem;font-weight:700;}
+  .verdict-pill.bad{background:var(--bad-bg);color:var(--bad);}
+  .verdict-pill.good{background:var(--good-bg);color:var(--good);}
+  .setup{margin:12px 0 4px;padding:11px 14px;border-radius:9px;background:var(--cream);border:1px dashed var(--gold);font-size:.88rem;}
+  .setup .st{font-size:.72rem;text-transform:uppercase;letter-spacing:.12em;font-weight:700;color:var(--warn);display:block;margin-bottom:3px;}
+  .setup .note{display:block;margin-top:6px;color:var(--muted);font-size:.84rem;}
+
+  /* Scalability table */
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:.92rem;background:var(--cream-2);
+    border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(122,36,16,.06);}
+  thead th{background:var(--maroon);color:#fff;padding:13px 15px;text-align:left;font-size:.86rem;}
+  thead th:first-child{width:30%;}
+  tbody td{padding:12px 15px;border-top:1px solid var(--border);vertical-align:top;}
+  tbody tr:nth-child(even) td{background:var(--cream);}
+  td .y{color:var(--good);font-weight:600;} td .n{color:var(--bad);font-weight:600;}
+  .dim{color:var(--muted);}
+
+  /* callouts */
+  .callout{border-radius:12px;padding:16px 20px;margin:16px 0;border:1px solid;}
+  .callout.win{background:var(--good-bg);border-color:#bfe0c1;}
+  .callout.warn{background:var(--warn-bg);border-color:#f0d9a8;}
+  .callout h3{margin:0 0 6px;font-size:1.02rem;}
+  .callout.win h3{color:var(--good);} .callout.warn h3{color:var(--warn);}
+
+  code{background:var(--code-bg);padding:.13em .42em;border-radius:5px;font-size:.86em;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--maroon-dk);}
+  pre{background:#3a1f12;color:#ffe9d4;padding:16px 18px;border-radius:10px;overflow:auto;
+    font-size:.84rem;line-height:1.55;}
+  pre code{background:none;padding:0;color:inherit;}
+
+  /* perf timeline */
+  .timeline{position:relative;margin:18px 0 6px;padding-left:38px;}
+  .timeline:before{content:"";position:absolute;left:14px;top:8px;bottom:8px;width:3px;
+    background:linear-gradient(var(--gold),var(--saffron));border-radius:3px;}
+  .tstep{position:relative;margin:0 0 18px;background:var(--cream-2);border:1px solid var(--border);
+    border-radius:12px;padding:15px 18px 15px 20px;box-shadow:0 2px 8px rgba(122,36,16,.05);}
+  .tstep:before{content:"";position:absolute;left:-31px;top:18px;width:16px;height:16px;border-radius:50%;
+    background:#fff;border:3px solid var(--saffron);box-shadow:0 0 0 4px var(--cream);}
+  .tstep.idle:before{border-color:#b6bcc4;}
+  .tstep .when{font-size:.74rem;text-transform:uppercase;letter-spacing:.12em;font-weight:700;color:var(--muted);}
+  .tstep h4{margin:3px 0 6px;font-size:1.06rem;color:var(--maroon);}
+  .tstep p{margin:.2em 0;font-size:.93rem;}
+  .api-badge{display:inline-block;margin:6px 8px 0 0;padding:4px 12px;border-radius:30px;font-size:.78rem;font-weight:700;}
+  .api-badge.none{background:#eef1f4;color:#5a626b;}
+  .api-badge.get{background:#e8f0fb;color:#1c5cab;}
+  .api-badge.post{background:#fdeee2;color:var(--saffron-dk);}
+  .effect{display:inline-block;margin-top:8px;padding:4px 12px;border-radius:8px;font-size:.83rem;font-weight:600;}
+  .effect.good{background:var(--good-bg);color:var(--good);}
+  .effect.neutral{background:var(--warn-bg);color:var(--warn);}
+  .perf-key{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:14px 0;}
+  .perf-key .pk{background:var(--cream-2);border:1px solid var(--border);border-radius:10px;padding:13px 15px;}
+  .perf-key .pk b{display:block;color:var(--maroon);font-size:.95rem;margin-bottom:3px;}
+  .perf-key .pk span{font-size:.86rem;color:var(--muted);}
+
+  .verdict-box{background:linear-gradient(135deg,var(--maroon),var(--saffron-dk));color:#fff;
+    border-radius:14px;padding:26px 30px;margin:24px 0;box-shadow:0 6px 22px rgba(122,36,16,.2);}
+  .verdict-box h2{color:#fff;margin-top:0;}
+  .verdict-box h2 .dot{background:#fff;}
+  .verdict-box .big{font-size:1.12rem;font-weight:600;margin:6px 0;}
+  .verdict-box code{background:rgba(255,255,255,.16);color:#ffe9d4;}
+  .verdict-box ul{margin:.6em 0;padding-left:1.3em;} .verdict-box li{margin:.4em 0;}
+
+  footer{margin-top:40px;color:var(--muted);font-size:.82rem;text-align:center;border-top:1px solid var(--border);padding-top:18px;}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:.82rem;color:var(--muted);margin:6px 0 2px;}
+  .legend span b{color:var(--ink);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <p class="kicker">Isha · ISO Marketing × PRS Registration</p>
+    <h1>How should the marketing site hand users off to the registration form?</h1>
+    <p>Two ways to connect the marketing page (ISO) to the new registration/booking system (PRS):
+       a simple <strong>link with query parameters</strong>, or a <strong>data API</strong> the marketing site reads and submits to.
+       This note compares both — for both the technical and business teams.</p>
+    <div class="tags">
+      <span class="tag">Event: Lap of Master 2026</span>
+      <span class="tag">Decision note</span>
+      <span class="tag">Verified against PRS source code</span>
+    </div>
+  </header>
+
+  <!-- BUSINESS SUMMARY -->
+  <div class="tldr">
+    <h3>In one line</h3>
+    <p>The <strong>query-param link</strong> is fine only when the marketing page shows nothing and just sends the user
+       straight to the form. The moment the marketing page needs to <strong>show real options (rooms, prices, seats) or
+       grow over time</strong>, the <strong>JSON API is the scalable choice</strong> — and it's the recommended direction.</p>
+  </div>
+
+  <h2><span class="dot"></span>What each approach means (plain language)</h2>
+  <p class="sub">Think of booking the Lap of Master program like booking a hotel room from a travel site.</p>
+
+  <div class="cols">
+    <div class="card a">
+      <div class="head">
+        <div class="label">Approach A</div>
+        <h3>Query-Param Redirect</h3>
+        <div class="how">Marketing page is static → user clicks <em>Register</em> → we send them to the form with details tacked onto the web link (e.g. <code>?category=…</code>).</div>
+      </div>
+      <div class="body">
+        <p style="margin-top:0">Like a travel site that <strong>doesn't show room options itself</strong> — it just bounces you to the hotel's own booking page. Anything we want to "pass along" has to be squeezed into the web address.</p>
+        <div class="plist-title pro">Pros</div>
+        <ul class="plist pro">
+          <li>Simplest to launch for the basic "just send them to the form" case</li>
+          <li>No data work on the marketing side</li>
+        </ul>
+        <div class="plist-title con">Cons</div>
+        <ul class="plist con">
+          <li>The marketing page <strong>can't show live rooms/prices</strong> — that data isn't available to it</li>
+          <li>Any info we hardcode <strong>goes stale</strong> (price/availability changes)</li>
+          <li>Every new detail to pass = new code on <strong>both</strong> teams, every time</li>
+          <li>Web-address contract is fragile (length limits, no validation)</li>
+        </ul>
+        <span class="verdict-pill bad">Doesn't scale as the page grows</span>
+      </div>
+    </div>
+
+    <div class="card b">
+      <div class="head">
+        <div class="label">Approach B</div>
+        <h3>JSON Data API</h3>
+        <div class="how">Form team exposes a <em>data feed</em> → marketing page reads it, shows the options in our own design → on <em>Continue</em> it submits and forwards the user to the form.</div>
+      </div>
+      <div class="body">
+        <p style="margin-top:0">Like a travel site that <strong>shows live rooms and prices in its own layout</strong>, lets you pick, then hands you to the hotel to finish payment. The marketing page stays in control of the look and always shows current data.</p>
+        <div class="plist-title pro">Pros</div>
+        <ul class="plist pro">
+          <li><strong>Shows live, accurate</strong> rooms / prices / availability</li>
+          <li>Marketing page renders the <strong>exact Figma design</strong></li>
+          <li>Adding more info later is usually <strong>config, not new code</strong></li>
+          <li>Clean ownership: form team owns data &amp; booking, marketing owns the look</li>
+        </ul>
+        <div class="plist-title con">Cons</div>
+        <ul class="plist con">
+          <li>Two teams agree on the data shape once</li>
+        </ul>
+        <div class="setup">
+          <span class="st">One-time setup cost (not a recurring drawback)</span>
+          Form team builds a public data + submit endpoint — paid once, then reused for every future event.
+          <span class="note">Note: this is <strong>not unique to this approach</strong> — the query-param redirect <strong>also</strong> needs new PRS work (PRS has no way to read these params today), so it doesn't tilt the comparison. The recurring costs all sit on the query-param side.</span>
+        </div>
+        <span class="verdict-pill good">Scales cleanly · recommended</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCALABILITY -->
+  <h2><span class="dot"></span>Scalability, side by side</h2>
+  <p class="sub">"Scalability" here = how well it holds up as the marketing page shows more and as we add more events.</p>
+  <table>
+    <thead>
+      <tr><th>Question</th><th>Query-Param Redirect</th><th>JSON Data API</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Works with PRS today?</td>
+        <td><span class="n">No</span> — PRS has no way to read these params; needs new code first</td>
+        <td><span class="dim">Not yet, but PRS's data layer is already shaped for it</span></td></tr>
+      <tr><td>Can the marketing page show live rooms/prices?</td>
+        <td><span class="n">No</span> — data isn't available; hardcoded info goes stale</td>
+        <td><span class="y">Yes</span> — reads live data each visit</td></tr>
+      <tr><td>Match the bespoke Figma design?</td>
+        <td><span class="dim">N/A — page shows nothing</span></td>
+        <td><span class="y">Yes</span> — marketing renders its own UI</td></tr>
+      <tr><td>Cost of adding a new field later</td>
+        <td><span class="n">New param + new reader, on both teams, every time</span></td>
+        <td><span class="y">Usually config-only</span> (zero / one line)</td></tr>
+      <tr><td>Contract quality</td>
+        <td><span class="n">Text in a URL</span> — no validation, length-limited, undocumented</td>
+        <td><span class="y">Structured &amp; versionable</span>, documented</td></tr>
+      <tr><td>Carries booking identity (tokens) back cleanly?</td>
+        <td><span class="n">No</span></td>
+        <td><span class="y">Yes</span> — returns booking + step token + next URL</td></tr>
+      <tr><td>Reuse across future events</td>
+        <td><span class="n">Re-negotiated per event</span></td>
+        <td><span class="y">Same contract everywhere</span>; new event = config</td></tr>
+    </tbody>
+  </table>
+
+  <!-- VERDICT -->
+  <div class="verdict-box">
+    <h2><span class="dot"></span>Verdict &amp; recommendation</h2>
+    <p class="big">Use the JSON Data API as the scalable path. Keep the query-param link only for the trivial "show nothing, send to the form" case.</p>
+    <ul>
+      <li><strong>Standard events</strong> (no custom design): a simple redirect to <code>/event/&lt;slug&gt;-&lt;flowId&gt;</code> is enough.</li>
+      <li><strong>Designed events</strong> like Lap of Master (custom seat map): the marketing page reads a data feed, renders the design, submits, and forwards the user with their booking token.</li>
+    </ul>
+    <p style="margin-bottom:0">Ask the form team for <strong>one reusable, public, versioned “page-data” feed</strong> (not just inventory — so it absorbs future fields) plus an authoritative <strong>submit</strong> that returns the booking handoff:</p>
+<pre><code>GET  {PRS_API}/public/v1/flows/{flowId}/page-data?lang=&amp;region=&amp;currency=
+  →  { event, steps, categories[], seatMap, /* + descriptions, eligibility, add-ons, discounts … */ }
+
+POST {PRS_API}/public/v1/flows/{flowId}/steps/{stepKey}/submit
+  →  { bookingToken, stepToken, nextUrl }   // PRS builds nextUrl; ISO just redirects</code></pre>
+  </div>
+
+  <!-- PERFORMANCE / PAGE LOAD -->
+  <h2><span class="dot"></span>Effect on page load &amp; performance</h2>
+  <p class="sub">Key point: registration is a <strong>popup (side-sheet)</strong>. The data API runs only when the user
+     <em>opens</em> it — never at page load. So the marketing page loads exactly as fast as it does today.</p>
+
+  <div class="callout win">
+    <h3>Initial page load is untouched</h3>
+    <p style="margin:.2em 0;">The marketing page is static / CMS content. <strong>No registration API runs while the page loads</strong>,
+       so <strong>LCP, speed, and SEO are unaffected</strong>. The API calls are deferred to user interaction.</p>
+  </div>
+
+  <div class="timeline">
+    <div class="tstep">
+      <div class="when">1 · Page loads</div>
+      <h4>Marketing page renders</h4>
+      <p>Hero, copy, and the <em>Register Now</em> button — all static/CMS, just like today.</p>
+      <span class="api-badge none">0 registration API calls</span>
+      <div><span class="effect good">No impact on LCP / load speed / SEO</span></div>
+    </div>
+
+    <div class="tstep idle">
+      <div class="when">2 · User reads the page</div>
+      <h4>Idle — nothing fetched</h4>
+      <p>No booking data is loaded until the user shows intent. <em>(Optional: prefetch on button hover for an instant popup.)</em></p>
+      <span class="api-badge none">0 calls</span>
+    </div>
+
+    <div class="tstep">
+      <div class="when">3 · User clicks “Register Now”</div>
+      <h4>Popup opens → <code>GET page-data</code> fires here</h4>
+      <p>The side-sheet opens <strong>instantly</strong> showing a skeleton/loader, then fills in with live rooms, prices and seats as the response arrives.</p>
+      <span class="api-badge get">1 × GET (lazy, on open)</span>
+      <div><span class="effect good">PRS already caches the slow-changing data (Redis) → fast; seats stay live</span></div>
+    </div>
+
+    <div class="tstep">
+      <div class="when">4 · User selects a category → clicks “Continue”</div>
+      <h4><code>POST submit</code> fires here</h4>
+      <p>Brief loading state on the button; server validates and returns the booking token + next URL, then we redirect to PRS for payment.</p>
+      <span class="api-badge post">1 × POST (on Continue)</span>
+      <div><span class="effect neutral">One short wait, expected at checkout — not on page load</span></div>
+    </div>
+  </div>
+
+  <p style="font-weight:600;margin:14px 0 4px;color:var(--maroon)">How to keep it feeling instant</p>
+  <div class="perf-key">
+    <div class="pk"><b>Lazy on open</b><span>GET runs on popup-open, not page load — zero initial-load cost.</span></div>
+    <div class="pk"><b>Skeleton first</b><span>Popup appears immediately with placeholders; data fills in.</span></div>
+    <div class="pk"><b>Already cached in PRS</b><span>Flow &amp; event data are served from Redis today; adding a CDN/HTTP cache for the feed makes repeat opens near-instant.</span></div>
+    <div class="pk"><b>Prefetch on intent</b><span>Optionally fetch on button hover/focus so the popup is pre-filled.</span></div>
+  </div>
+
+  <div class="callout win">
+    <h3>What PRS caches today (verified in code)</h3>
+    <ul style="margin:.3em 0;">
+      <li><strong>Already cached (Redis, read-through):</strong> flow definitions (<code>event_flow_{flowId}</code>) and event details (<code>event_json_{eventId}_{lang}</code>) &nbsp;<span class="dim">(step_helper.py, event_helper.py)</span> — the slow-changing parts of the feed are fast.</li>
+      <li><strong>Deliberately live (uncached):</strong> seat / inventory availability is read fresh from the database every request — so prices and seats shown are always current (correct for booking).</li>
+      <li><strong>Not present yet:</strong> no HTTP <code>Cache-Control</code> headers and no CDN/edge cache in front of the API. Adding those for the new public feed is an easy, optional speed win for repeat opens.</li>
+    </ul>
+  </div>
+
+  <!-- TECHNICAL DETAIL -->
+  <h2><span class="dot"></span>Why query-params don't scale (technical, verified in PRS code)</h2>
+  <div class="callout warn">
+    <h3>PRS has no raw-query-param → form-value plumbing</h3>
+    <ul style="margin:.3em 0;">
+      <li>No <code>?category=</code> / <code>?seat=</code> / <code>?inventory_id=</code> reader exists. All pre-selection is <strong>token-based</strong> (<code>prefill_token</code>, <code>step_token</code>+<code>bookingToken</code>, SSO <code>prefill_reference</code>).</li>
+      <li>Every token needs a <strong>server-side record that already exists</strong>; there is <strong>no endpoint to mint a token from external data</strong> &nbsp;<span class="dim">(get_form_step_details_api_helper.py:182)</span>.</li>
+      <li>Inventory is chosen by a <strong>server-side rules engine</strong> on the participant's own answers, not on URL values &nbsp;<span class="dim">(form_helper.py:206)</span>.</li>
+      <li>Unknown params are <strong>silently ignored</strong>; one-shot params (<code>utm_*</code>, <code>jwt_token_iprs</code>) are stripped on first load.</li>
+    </ul>
+    <p style="margin:.4em 0 0;">⇒ A redirect-with-selection needs <strong>new PRS work regardless</strong>, and each future field is another bilateral change. Plus query-params can't let a static page <strong>display</strong> live inventory at all.</p>
+  </div>
+
+  <h2><span class="dot"></span>Why the JSON API scales (technical, verified in PRS code)</h2>
+  <div class="callout win">
+    <h3>The PRS data layer is already built to expose more over time</h3>
+    <ul style="margin:.3em 0;">
+      <li>Read responses are <strong>flexible JSON from JSONB blobs</strong> (<code>form_json</code>, <code>inventory_json</code>) and raw DB rows — typed structs exist <em>only for request bodies</em> &nbsp;<span class="dim">(Utils/structs.py)</span>. New fields are usually <strong>Odoo config, not facade code</strong>.</li>
+      <li>The submit path already returns <code>booking_token</code> + <code>next_step</code> &nbsp;<span class="dim">(submit_form_step_api_halper.py:303)</span> — a clean handoff seam.</li>
+    </ul>
+    <p style="margin:.4em 0 0;"><strong>Two one-time costs:</strong> (1) add a <em>purpose-built</em> read endpoint — today's form feed mixes prices into form fields rather than a clean catalog; (2) add a <em>public read auth</em> model — everything currently sits behind one shared static token. Both are one-time and then scale to every event.</p>
+  </div>
+
+  <div class="legend">
+    <span><b class="y" style="color:var(--good)">✔</b> = yes / strength</span>
+    <span><b class="n" style="color:var(--bad)">✕</b> = no / weakness</span>
+    <span><b>file:line</b> = verified reference in PRS source</span>
+  </div>
+
+  <footer>
+    Isha · ISO ↔ PRS registration handoff · companion to
+    <code>lap-of-master-registration-handoff</code> · share with technical &amp; business teams
+  </footer>
+
+</div>
+</body>
+</html>

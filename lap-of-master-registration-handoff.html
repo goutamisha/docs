@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lap of Master 2026 — Marketing → Registration handoff</title>
+<style>
+  :root { --fg:#1f2328; --muted:#656d76; --border:#d0d7de; --bg:#ffffff; --accent:#cf4b1a; --code-bg:#f6f8fa; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#eef0f2; color:var(--fg);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    line-height:1.65; font-size:16px; }
+  .wrap { max-width:900px; margin:32px auto; background:var(--bg); padding:48px 56px;
+    border:1px solid var(--border); border-radius:12px; box-shadow:0 1px 4px rgba(0,0,0,.06); }
+  h1 { font-size:1.9rem; line-height:1.25; margin:0 0 .6em; padding-bottom:.3em; border-bottom:2px solid var(--accent); }
+  h2 { font-size:1.4rem; margin:1.8em 0 .6em; padding-bottom:.25em; border-bottom:1px solid var(--border); }
+  h3 { font-size:1.12rem; margin:1.5em 0 .5em; }
+  p { margin:.7em 0; }
+  a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+  code { background:var(--code-bg); padding:.15em .4em; border-radius:5px; font-size:.88em;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+  pre { background:var(--code-bg); padding:16px 18px; border-radius:8px; overflow:auto; border:1px solid var(--border); }
+  pre code { background:none; padding:0; font-size:.85em; line-height:1.5; }
+  blockquote { margin:1em 0; padding:.3em 1em; color:var(--muted); border-left:4px solid var(--border); background:#fafbfc; }
+  table { border-collapse:collapse; width:100%; margin:1em 0; font-size:.93em; }
+  th,td { border:1px solid var(--border); padding:8px 12px; text-align:left; vertical-align:top; }
+  th { background:var(--code-bg); }
+  tr:nth-child(even) td { background:#fafbfc; }
+  ul,ol { padding-left:1.5em; } li { margin:.3em 0; }
+  hr { border:none; border-top:1px solid var(--border); margin:2em 0; }
+  strong { font-weight:650; }
+  .meta { color:var(--muted); font-size:.85rem; margin-top:-.4em; margin-bottom:1.5em; }
+  @media (max-width:640px){ .wrap{ padding:28px 20px; margin:0; border-radius:0; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<p class="meta">Architecture note · generated from docs/architecture/lap-of-master-registration-handoff.md</p>
+<h1 id="lap-of-master-2026--marketing-→-registration-handoff">Lap of Master 2026 — Marketing → Registration handoff</h1>
+<p><strong>Question:</strong> The marketing site (<code>iso_v2</code>) is static and has no form. The registration/booking form lives in a
+separate 3-repo system (<code>prs-frontend</code> + <code>prs-facade</code> + <code>prs-backend</code>). For the &quot;Lap of Master&quot; event (and future
+events), how should the <code>Register Now</code> CTA hand the user off to the form? Two approaches were proposed:</p>
+<ul>
+<li><strong>(A)</strong> Keep everything static in <code>iso</code>, redirect to the form URL with query params.</li>
+<li><strong>(B)</strong> Expose an API from <code>prs-facade</code>, let <code>iso</code> POST step 1 directly, then redirect to the form URL with a step +
+booking token.</li>
+</ul>
+<p><strong>Answer (short):</strong> The PRS form system is being <strong>built new</strong> — so design the handoff as a clean two-endpoint
+<strong>contract</strong>, not around the legacy SPA. Tier it by event type:</p>
+<ul>
+<li><strong>Standard events (no bespoke design):</strong> <strong>(A) redirect</strong> to <code>/event/&lt;slug&gt;-&lt;flowId&gt;</code> (cheapest; PRS owns the UI).</li>
+<li><strong>Bespoke-designed events like Lap of Master (custom seat map):</strong> <strong>(B) contract-driven</strong> — the form team exposes an
+<strong>inventory JSON API</strong>, ISO renders its own Figma UI from it, and on <code>Continue</code> ISO submits to get <code>booking_token</code> +
+<code>step_token</code> and redirects to PRS. This is <strong>not reimplementation</strong> — PRS owns booking state/tokens/payment, ISO owns
+presentation.</li>
+</ul>
+<p><strong>Avoid the widget/iframe embed (C) for this design:</strong> the Figma seat-map is ISO&#39;s bespoke UI, so the widget would force
+the form team to rebuild ISO&#39;s design in their repo, and it requires fragile <code>postMessage</code> glue (open/close/resize/
+complete) across two repos.</p>
+<blockquote>
+<p><strong>Note on legacy facts:</strong> earlier analysis of the <em>as-built</em> <code>prs-frontend</code>/<code>prs-facade</code> (static <code>x-system-token</code> in
+the client bundle, booking created implicitly on the generic step POST, widget on <code>MemoryRouter</code>) describes the <strong>old</strong>
+system. The new system is unbuilt, so those are not constraints — they&#39;re anti-patterns to design away from.</p>
+</blockquote>
+<hr>
+<h2 id="what-the-figma-actually-specifies">What the Figma actually specifies</h2>
+<p>Source: <a href="https://www.figma.com/design/C6tZBk2drlSXzrqgsFXeVy/Lap-of-Master-Revamp-2026?node-id=122-1545&m=dev">Lap of Master Revamp 2026 — Desktop Registration Flow</a>
+(section <code>122:1545</code>).</p>
+<table>
+<thead>
+<tr>
+<th>Screen</th>
+<th>Node</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Register Now</td>
+<td><code>122:1546</code></td>
+<td>Marketing hero — image + orange panel + <code>REGISTER NOW</code> CTA</td>
+</tr>
+<tr>
+<td>Step 1/2 — sidesheet</td>
+<td><code>122:1558</code></td>
+<td>Right-side <strong>overlay</strong> on the same marketing page</td>
+</tr>
+<tr>
+<td>Expanded seat map</td>
+<td><code>122:6676</code></td>
+<td>Zoomed bay/seat layout</td>
+</tr>
+<tr>
+<td>Selecting bay</td>
+<td><code>122:1845</code></td>
+<td>A bay selected</td>
+</tr>
+</tbody></table>
+<p>Critical detail: <strong>&quot;Step 1&quot; is accommodation/bay-category selection, not a lead-capture form.</strong> It is a <code>Step 1/2</code>
+progress bar with an interactive <strong>seat/bay map</strong> and a list of priced categories:</p>
+<ul>
+<li>Yogeshwara — 50,000 INR (Executive AC twin sharing)</li>
+<li>Bhutheswara — 30,000 INR (Deluxe AC twin sharing)</li>
+<li>Kaleshwara — 18,000 INR (Standard AC twin sharing)</li>
+<li>Sarveshwara — 14,000 INR (Non-AC triple sharing)</li>
+<li>Mahadeva — 3,500 INR (no stay)</li>
+</ul>
+<p>There are <strong>no name/email/phone fields and no payment screen</strong> in this prototype. Step 2 (personal details + payment)
+lives in the PRS form engine. So &quot;submit step 1&quot; = &quot;submit a bay selection&quot;, which is exactly the PRS form engine&#39;s
+first dynamic step — <strong>not</strong> a simple lead form that would be cheap to reimplement.</p>
+<hr>
+<h2 id="how-the-prs-form-system-actually-works">How the PRS form system actually works</h2>
+<p>From reading <code>prs-frontend</code>, <code>prs-facade</code>, <code>prs-backend</code>:</p>
+<p><strong><code>prs-frontend</code></strong> — React 18 + Vite SPA, self-driving multi-step form.</p>
+<ul>
+<li>Public entry route: <code>/event/:eventSlug</code> where <code>eventSlug</code> <strong>ends in the numeric flow id</strong>:
+<code>flowId = eventSlug.split(&#39;-&#39;).pop()</code> (<code>src/helper/extractPageNameAndEventId.ts</code>). So a link is
+<code>/event/lap-of-master-&lt;flowId&gt;</code>.</li>
+<li>Reads query params on entry: <code>utm_source/medium/campaign/term/content</code>, <code>lang</code>, <code>prefill_token</code>, <code>jwt_token_iprs</code>
+(SSO), and resume params <code>token</code>, <code>step_token</code> (<code>src/hooks/useFormDetails/useFormDetailsUrl.tsx</code>).</li>
+<li>Resume/deep-link routes: <code>/event/:eventSlug/:bookingToken/register</code>, <code>/event/:eventSlug/:bookingToken/:stepToken</code>.</li>
+<li>Ships a <strong>widget build</strong>: <code>prs-form.bundle.js</code>, mounted via <code>&lt;div id=&quot;prs-form&quot; data-props=&#39;{&quot;slug&quot;:&quot;…&quot;,&quot;eventLanguage&quot;:&quot;…&quot;,&quot;theme&quot;:&quot;…&quot;}&#39;&gt;</code> (<code>src/mfa/index.tsx</code>).</li>
+</ul>
+<p><strong><code>prs-facade</code></strong> — Python Litestar BFF.</p>
+<ul>
+<li>A booking is created <strong>implicitly on the first</strong> <code>POST /flows/{flow_id}/steps/{step_key}/form</code>
+(body <code>FormStepSubmissionData { form_data, booking_id? }</code>); the response returns
+<code>data.booking_data.booking_token</code> (a UUID). There is <strong>no <code>POST /registrations</code> create endpoint</strong>.</li>
+<li><strong>Every</strong> booking/flow/step/form endpoint requires the header <strong><code>x-system-token</code></strong> == <code>PRS_SYSTEM_STATIC_TOKEN</code>
+(<code>Utils/middleware.py</code>, exclude list in <code>Utils/configs.py</code>). CORS is <code>allow_origins=[&quot;*&quot;]</code>, so CORS is <em>not</em> the
+blocker — the static token is. (Note: this same token is already baked into the public SPA/widget bundle as
+<code>VITE_APP_STATIC_TOKEN</code>, so it is a coarse gate, not a true secret.)</li>
+<li>The facade itself builds the canonical handoff URL <code>{FRONTEND_DOMAIN}/event/{flow_id}/{booking_token}</code>.</li>
+</ul>
+<p><strong><code>prs-backend</code></strong> — Odoo. Owns the DB/business logic/payment; facade reads/writes the Odoo Postgres DB directly via
+asyncpg.</p>
+<p><strong>Takeaway:</strong> the whole system is designed for <strong>the frontend (form engine) to render the dynamic steps and create the
+booking</strong>. Step data (categories, prices, seat availability) is server-driven and changes per event.</p>
+<hr>
+<h2 id="iso_v2-already-has-the-pieces"><code>iso_v2</code> already has the pieces</h2>
+<ul>
+<li><strong>CTA + external link is CMS-driven.</strong> <code>GpEventBanner</code> / <code>GpRegisterCta</code> render a Chakra <code>&lt;Link href={cta.href} isExternal={cta.openInNewTab}&gt;</code>; the <code>href</code> comes from the Dato <code>simple_button.linkUrl</code> field
+(<code>services/dato/mappers/gpEventBanner.ts</code> → <code>RawButton { buttonText, linkUrl, openInNewTab }</code>). <strong>No code change is
+needed to point a CTA at an external registration URL</strong> — it&#39;s content.</li>
+<li><strong>The PRS widget is already embedded today.</strong> <code>sections/registerTr/RegisterForm.js</code> loads
+<code>config.INLINE_FORM_G_EU_PRS</code> (<code>…/widget/prs-form.bundle.js</code>) and renders
+<code>&lt;Box id=&quot;prs-form&quot; data-props=&#39;{&quot;slug&quot;: &quot;&lt;flow&gt;&quot;, &quot;eventLanguage&quot;: &quot;en_US&quot;, &quot;theme&quot;: &quot;isha-foundation&quot;}&#39; /&gt;</code>,
+reading the flow from <code>?flow=</code>. <strong>Option C is a proven, existing pattern in this repo, not new infrastructure.</strong></li>
+<li><strong>Drawer/overlay primitives exist.</strong> Chakra Modal/Drawer + the <code>RegisterPopupVisibilityContext</code>
+(<code>useAnimatedDisclosure</code>) pattern can host the side-sheet.</li>
+<li>Routes are <code>/{region}/{language}/&lt;program&gt;</code> with regions <code>in | us | global</code>.</li>
+</ul>
+<hr>
+<h2 id="the-contract-recommended--inventory-api--iso-ui--submit→tokens→redirect">The contract (recommended) — inventory API + ISO UI + submit→tokens→redirect</h2>
+<p>Because the system is new and the seat-map UI is ISO&#39;s bespoke design, the cleanest generic handoff is a <strong>two-endpoint
+contract</strong> between the teams. PRS owns data + booking state; ISO owns presentation.</p>
+<p><strong>1. Inventory (read) — public, cacheable, CORS-enabled.</strong> This JSON is &quot;what you see in the Figma&quot;.</p>
+<pre><code>GET {PRS_API}/v1/flows/{flowId}/inventory?lang=&amp;region=&amp;currency=
+→ {
+    event:   { flowId, slug: &quot;lap-of-master&quot;, title, currency },
+    steps:   { current: 1, total: 2 },
+    seatMap: { zones: [ … ] } | null,
+    categories: [
+      { id, name: &quot;Yogeshwara&quot;, price: 50000, currency: &quot;INR&quot;,
+        stay: &quot;Executive AC twin sharing&quot;, hall: &quot;Seating in Adiyogi Alayam Hall&quot;,
+        distance: &quot;5-min walk to program area&quot;,
+        availability: &quot;available&quot; | &quot;limited&quot; | &quot;soldout&quot;, seatsLeft }
+    ]
+  }
+</code></pre>
+<p><strong>2. Submit step 1 (write) — authoritative, returns tokens + the next URL.</strong></p>
+<pre><code>POST {PRS_API}/v1/flows/{flowId}/steps/{stepKey}/submit
+body: { form_data: { categoryId, seatId? }, lang, region, utm }
+→ { bookingToken, stepToken, nextUrl }      // nextUrl is built by PRS, not ISO
+</code></pre>
+<p>On <code>Continue</code>, ISO POSTs the selection, receives <code>bookingToken</code> + <code>stepToken</code>, then <code>window.location = nextUrl</code>. PRS
+takes over for step 2 (personal details + payment).</p>
+<p><strong>Three rules that make this safe and generic:</strong></p>
+<ol>
+<li><strong>No long-lived secret in the browser.</strong> Route the POST through a thin <strong>Next.js route handler in ISO</strong>
+(<code>/api/register/[program]</code>) that holds any credential server-side and forwards to PRS. The inventory GET stays public.</li>
+<li><strong>The submit is authoritative.</strong> ISO&#39;s loaded inventory can go stale (a bay sells out before <code>Continue</code>), so the
+submit re-validates availability/price/eligibility and returns a typed error (<code>SOLDOUT</code>, <code>PRICE_CHANGED</code>) that ISO
+shows and then refreshes inventory. Correctness on the server, presentation on ISO — standard checkout design.</li>
+<li><strong>PRS owns URL format.</strong> Returning <code>nextUrl</code> means ISO never constructs PRS URLs; the two systems evolve
+independently.</li>
+</ol>
+<h2 id="the-three-options-scored">The three options, scored</h2>
+<h3 id="option-a--static--redirect--✅-recommended-default">Option A — Static + redirect  ✅ recommended default</h3>
+<p><code>REGISTER NOW</code> → <code>https://&lt;prs-domain&gt;/event/lap-of-master-&lt;flowId&gt;?utm_*&amp;lang=&lt;lang&gt;</code>.</p>
+<ul>
+<li><strong>Effort:</strong> content-only. Set <code>linkUrl</code> in Dato. Zero code, zero backend changes.</li>
+<li><strong>Pros:</strong> matches the system&#39;s intended design; form engine renders the bay-selection step and owns all of step
+1→payment→confirmation; UTM/lang/SSO prefill all already supported; nothing to maintain when the step schema changes.</li>
+<li><strong>Cons:</strong> the bay-selection step shows as a full PRS page, <strong>not</strong> as an overlay on the marketing hero — a visual
+deviation from the Figma side-sheet.</li>
+</ul>
+<h3 id="option-b--contract-driven-inventory-api--iso-ui--submit→tokens→redirect--✅-recommended-for-bespoke-events">Option B — Contract-driven: inventory API + ISO UI + submit→tokens→redirect  ✅ recommended for bespoke events</h3>
+<p>ISO renders the Figma seat-map/category UI from the <strong>inventory JSON</strong>; on <code>Continue</code> it submits the selection (via an
+ISO Next.js route handler) and gets <code>{ bookingToken, stepToken, nextUrl }</code>, then redirects to PRS. See <strong>The contract</strong>
+section above for the exact endpoints.</p>
+<ul>
+<li><strong>Effort:</strong> moderate–high, split cleanly across teams: form team builds 2 endpoints; ISO builds the UI it designed.</li>
+<li><strong>Pros:</strong> pixel-perfect to the bespoke Figma (ISO renders its own design); <strong>native popup open/close</strong> — it&#39;s all ISO
+React, no <code>postMessage</code>; clean team boundary (PRS = data + booking state, ISO = presentation); secure (no secret in
+the browser; submit is server-authoritative); generic via a versioned contract.</li>
+<li><strong>Cons:</strong> two teams must agree on the inventory + submit schema; ISO must handle server-returned errors
+(<code>SOLDOUT</code>/<code>PRICE_CHANGED</code>) and refresh inventory; ISO owns a (thin) Next.js route handler.</li>
+<li><strong>Not reimplementation:</strong> ISO does not own form logic, validation rules, pricing truth, or booking creation — it
+renders JSON and posts a selection. The server remains authoritative.</li>
+</ul>
+<h3 id="option-c--embed-the-prs-widgetiframe-in-a-side-sheet--❌-not-recommended-for-this-design">Option C — Embed the PRS widget/iframe in a side-sheet  ❌ not recommended for this design</h3>
+<p><code>REGISTER NOW</code> → open a Chakra Drawer that mounts the PRS widget/iframe; communicate via <code>window.postMessage</code>.</p>
+<ul>
+<li><strong>Why it doesn&#39;t fit:</strong> the seat-map is <strong>ISO&#39;s bespoke design</strong>, so the form team would have to rebuild ISO&#39;s UI
+inside the widget (wrong ownership, duplicated work, styling drift). And open/close/resize/complete must be wired over
+fragile cross-repo <code>postMessage</code> glue, plus iframe height/SSO/CSS/mobile concerns.</li>
+<li><strong>When C <em>would</em> make sense:</strong> a standard event whose form has <strong>no bespoke design</strong> and PRS&#39;s generic look is
+acceptable — then the widget avoids ISO building any UI at all.</li>
+</ul>
+<hr>
+<h2 id="recommendation">Recommendation</h2>
+<ol>
+<li><p><strong>Standard events → Option A (redirect).</strong> Store the <strong>flow id</strong> in the Dato program/banner entry and build the CTA
+<code>linkUrl</code> as <code>https://&lt;prs-domain&gt;/event/&lt;slug&gt;-&lt;flowId&gt;</code> with <code>utm_*</code> + <code>lang</code> passthrough. Lowest-risk; PRS owns the
+whole UI. Zero backend work.</p>
+</li>
+<li><p><strong>Lap of Master (and other bespoke-designed events) → Option B (contract-driven).</strong> Form team exposes
+<code>GET .../inventory</code> and <code>POST .../submit</code> (returning <code>bookingToken</code> + <code>stepToken</code> + <code>nextUrl</code>); ISO renders the Figma
+UI from the inventory JSON and, on <code>Continue</code>, submits via a Next.js route handler and redirects to <code>nextUrl</code>. This
+honors the design exactly, keeps popup open/close native, and keeps booking authority on PRS.</p>
+</li>
+<li><p><strong>Avoid Option C (widget/iframe)</strong> for this design — the bespoke UI belongs in ISO, and <code>postMessage</code> glue is
+avoidable coupling. Reserve it for non-bespoke events only.</p>
+</li>
+</ol>
+<h3 id="generalizing-to-upcoming-eventprogram">Generalizing to &quot;upcoming event/program&quot;</h3>
+<p>The handoff is the <strong>same two contracts for every event</strong>; only the rendering tier differs:</p>
+<ul>
+<li><strong>Per-event config = the PRS <code>flowId</code></strong> (+ slug stem + which tier), stored as CMS fields on each program entry in Dato.</li>
+<li><strong>Tier A (redirect):</strong> build the URL from one helper,
+<code>buildPrsEventUrl({ slugStem, flowId, region, language, utm })</code> → <code>/event/&lt;slugStem&gt;-&lt;flowId&gt;?lang=&lt;language&gt;&amp;utm_*</code>.</li>
+<li><strong>Tier B (contract):</strong> one reusable ISO flow — fetch <code>GET .../inventory</code>, render the (event-specific) selection UI,
+<code>POST</code> via the shared <code>/api/register/[program]</code> route handler, redirect to the returned <code>nextUrl</code>. The selection UI
+component varies per bespoke design; the data-fetch + submit + redirect plumbing is shared.</li>
+</ul>
+<p>Invariant across both tiers: <strong>PRS owns booking state, tokens, payment, and the canonical URL; ISO owns presentation
+when there&#39;s a custom design.</strong> A new event ships by editing CMS content (+ a UI component only when it has a bespoke
+design).</p>
+<hr>
+<h2 id="scalability-verification-query-param-redirect-vs-json-api">Scalability verification (query-param redirect vs JSON API)</h2>
+<p>Verified against the real <code>prs-frontend</code> / <code>prs-facade</code> / <code>prs-backend</code> source.</p>
+<p><strong>Passing inventory <em>selection</em> back via query params — not viable, doesn&#39;t scale.</strong></p>
+<ul>
+<li>PRS has <strong>zero raw-query-param → form-value plumbing</strong>. No <code>?category=</code> / <code>?seat=</code> / <code>?inventory_id=</code> reader exists.
+All pre-selection is token-based (<code>prefill_token</code>, <code>step_token</code>+<code>bookingToken</code>, SSO <code>prefill_reference</code>), and every
+token requires a <strong>server-side artifact that already exists</strong> — there is <strong>no endpoint to mint a prefill token from
+external data</strong> (<code>Helpers/api/step/get_form_step_details_api_helper.py:182</code>).</li>
+<li>Inventory is chosen by a <strong>server-side Jinja <code>selection_expression</code> engine</strong> keyed on the participant&#39;s own answers,
+not on URL params (<code>Helpers/form_helper.py:206</code>).</li>
+<li><strong>Unknown query params are silently ignored</strong> (Litestar binds only declared params; no whitelist), and one-shot params
+(<code>utm_*</code>, <code>jwt_token_iprs</code>, <code>join_booking</code>) are stripped from the URL on first render.</li>
+<li>So a redirect-with-selection needs <strong>new PRS code regardless</strong> (a param reader seeding the <code>inventory_id</code> field&#39;s
+<code>default_value</code>; the server half is coincidentally present — <code>populate_inventory</code> branches on <code>inventory_id != &quot;&quot;</code> at
+<code>get_form_step_details_api_helper.py:155</code>, and <code>verify_inventory_belongs_to_event</code> exists). Every <em>future</em> field ISO
+wants to pass = another bilateral param + reader. Stringly-typed, unvalidated, URL-length-limited, undocumented.</li>
+<li>Deeper flaw: query params only carry the selection <strong>back to</strong> PRS; they don&#39;t let a static ISO page <strong>display</strong> live
+inventory — that data would have to be hardcoded/CMS&#39;d and <strong>go stale</strong> against PRS&#39;s live availability/pricing.</li>
+</ul>
+<p><strong>A JSON API — extends with little/no code, this is the scalable path.</strong></p>
+<ul>
+<li>Facade read responses are <strong>untyped <code>Dict[str, Any]</code> sourced from JSONB blobs</strong> (<code>form_json</code>, <code>inventory_json</code>) and
+raw asyncpg dicts. <code>msgspec.Struct</code> types exist <strong>only for request bodies</strong> (<code>Utils/structs.py</code>) — never for reads.
+So exposing more data (program description, eligibility, add-ons, discounts) is usually <strong>config in Odoo, not facade
+code</strong>; a new DB column is a one-line <code>SELECT</code>.</li>
+<li>Submit already returns <code>booking_token</code> + <code>next_step</code> (<code>Helpers/api/step/submit_form_step_api_halper.py:303</code>) — clean
+handoff seam.</li>
+<li>Two one-time costs: (1) the form GET is a <strong>render artifact, not a clean catalog</strong> (prices/seats merged into form-field
+<code>default_value</code>s), so add a <strong>purpose-built read endpoint</strong> rather than scraping the form schema; (2) <strong>no public auth
+model</strong> — everything is behind one static <code>x-system-token</code> (CORS is <code>*</code> but moot), so add a public/read-only endpoint
+or proxy via ISO&#39;s Next.js route handler.</li>
+</ul>
+<p><strong>Verdict:</strong> query-param redirect is acceptable <strong>only</strong> for the trivial &quot;ISO shows nothing, bounce to <code>/event/&lt;flowId&gt;</code>&quot;
+case (Tier A). The moment ISO must <strong>display inventory or grow the page</strong> — the stated future direction — query params
+break down and the JSON API is required. Make the API a <strong>page-data contract, not just inventory</strong>, so it absorbs future
+fields without a new round-trip of bilateral changes:</p>
+<pre><code>GET {PRS_API}/public/v1/flows/{flowId}/page-data?lang=&amp;region=&amp;currency=
+→ { event, steps, categories[], seatMap, /* extensible: descriptions, eligibility, addOns, discounts, … */ }
+POST {PRS_API}/public/v1/flows/{flowId}/steps/{stepKey}/submit → { bookingToken, stepToken, nextUrl }
+</code></pre>
+<h3 id="key-source-references">Key source references</h3>
+<ul>
+<li>Figma: section <code>122:1545</code>; screens <code>122:1546</code> (CTA), <code>122:1558</code> (Step 1/2 sidesheet).</li>
+<li>PRS frontend: <code>src/interface/routers.ts</code>, <code>src/helper/extractPageNameAndEventId.ts</code>,
+<code>src/hooks/useFormDetails/useFormDetailsUrl.tsx</code>, <code>src/mfa/index.tsx</code>.</li>
+<li>PRS facade: <code>Controllers/step_controller.py</code>, <code>Utils/middleware.py</code>, <code>Utils/configs.py</code>, <code>Utils/structs.py</code>.</li>
+<li>iso: <code>sections/registerTr/RegisterForm.js</code> (existing widget embed), <code>components/GuruPurnima/GpEventBanner/*</code>,
+<code>services/dato/mappers/gpEventBanner.ts</code>, <code>pages/[region]/[language]/guru-purnima-sadhana/index.js</code>.</li>
+</ul>
+
+</div>
+</body>
+</html>
