@@ -3,16 +3,14 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>IVM Backend — Integration Test Report</title>
+<title>Isha Foundation, IT — Documents</title>
 <style>
   :root{
     --bg:#faf6f0; --paper:#ffffff; --paper2:#fcf9f4; --ink:#2b2118; --muted:#6b5a4a; --faint:#9a8a78;
     --line:#d9cbb8; --line-soft:#e7ddcd;
     --saffron:#c75b12; --saffron-soft:#f3e0cf; --saffron-wash:#fbf1e7;
     --maroon:#6e2a1e; --gold:#b58a3c;
-    --green:#3f7d4f; --green-soft:#dcebdf; --green-wash:#eef5ef;
-    --red:#a8341f; --red-soft:#f6e2dc; --amber:#9a6b16; --amber-soft:#f6ecd6;
-    --blue:#3a5a78; --blue-soft:#dde6ee; --blue-wash:#eef3f8;
+    --green:#3f7d4f; --blue:#3a5a78;
     --serif:"Georgia","Iowan Old Style","Palatino Linotype",serif;
     --sans:"Helvetica Neue",Arial,sans-serif;
     --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
@@ -20,72 +18,26 @@
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--serif);line-height:1.62;font-size:16.5px;-webkit-font-smoothing:antialiased}
-  .page{max-width:1060px;margin:0 auto;padding:40px 40px 100px}
-  header{text-align:center;border-bottom:1px solid var(--line);padding-bottom:30px;margin-bottom:14px}
+  .page{max-width:920px;margin:0 auto;padding:56px 40px 100px}
+  header{text-align:center;border-bottom:1px solid var(--line);padding-bottom:34px;margin-bottom:40px}
   .eyebrow{font-family:var(--sans);letter-spacing:.32em;text-transform:uppercase;font-size:11px;color:var(--saffron);margin-bottom:14px}
   h1{font-size:38px;font-weight:400;margin:0 0 12px;letter-spacing:.01em;line-height:1.1}
-  .subtitle{color:var(--muted);font-style:italic;font-size:17px;margin:0 auto;max-width:760px}
-  .stampline{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-top:18px;letter-spacing:.02em}
-  .toc{font-family:var(--sans);font-size:11.5px;text-transform:uppercase;letter-spacing:.12em;text-align:center;margin:26px 0 8px;color:var(--muted);line-height:2.2}
-  .toc a{color:var(--muted);text-decoration:none;padding:0 8px;border-right:1px solid var(--line)}
-  .toc a:last-child{border-right:none}
-  .toc a:hover{color:var(--saffron)}
-  section{margin-top:48px}
-  h2{font-family:var(--serif);font-size:24px;font-weight:400;margin:0 0 4px;letter-spacing:.01em;display:flex;align-items:baseline;gap:14px}
-  h2 .num{font-family:var(--mono);font-size:14px;color:var(--saffron);font-weight:700}
-  h2 + .rule{height:1px;background:var(--line);margin:14px 0 20px}
-  h3{font-family:var(--sans);font-size:13px;text-transform:uppercase;letter-spacing:.16em;color:var(--maroon);margin:26px 0 10px;font-weight:700}
-  p{margin:13px 0}
-  strong{color:var(--maroon);font-weight:700}
-  code{font-family:var(--mono);font-size:12.5px;background:var(--saffron-wash);border:1px solid var(--line-soft);padding:1px 6px;border-radius:3px;color:var(--maroon)}
-  ul,ol{margin:12px 0;padding-left:22px}
-  li{margin:7px 0}
-  .verdict{background:var(--paper);border:1px solid var(--saffron);box-shadow:0 2px 0 var(--saffron-soft);padding:24px 30px;margin:24px 0}
-  .verdict .vh{font-family:var(--sans);font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--saffron);margin-bottom:10px}
-  .verdict p{font-size:16.5px;margin:0 0 12px}
-  .verdict p:last-child{margin-bottom:0}
-  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0}
-  .card{background:var(--paper);border:1px solid var(--line);padding:18px 18px 16px;text-align:center}
-  .card .big{font-family:var(--serif);font-size:30px;color:var(--saffron);line-height:1.05}
-  .card .big.g{color:var(--green)} .card .big.r{color:var(--red)} .card .big.b{color:var(--blue)}
-  .card .cap{font-family:var(--sans);font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.4}
-  .call{padding:16px 22px;margin:18px 0;border:1px solid var(--line)}
-  .call.s{background:var(--saffron-wash);border-color:var(--saffron-soft)}
-  .call.g{background:var(--green-wash);border-color:var(--green-soft)}
-  .call.r{background:var(--red-soft);border-color:#e8c4ba}
-  .call.a{background:var(--amber-soft);border-color:#e6d4a8}
-  .call.b{background:var(--blue-wash);border-color:var(--blue-soft)}
-  .call .t{font-family:var(--sans);font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;display:block;margin-bottom:6px}
-  .call.s .t{color:var(--saffron)} .call.g .t{color:var(--green)} .call.r .t{color:var(--red)} .call.a .t{color:var(--amber)} .call.b .t{color:var(--blue)}
-  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;background:var(--paper)}
-  caption{font-family:var(--sans);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-align:left;padding:0 0 8px}
-  th,td{text-align:left;padding:9px 13px;border-bottom:1px solid var(--line-soft);vertical-align:top}
-  th{font-family:var(--sans);color:var(--maroon);font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;border-bottom:1px solid var(--line)}
-  tbody tr:hover{background:var(--paper2)}
-  .pill{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 9px;border-radius:2px;white-space:nowrap;border:1px solid}
-  .p-pass{background:var(--green-wash);color:var(--green);border-color:var(--green-soft)}
-  .p-warn{background:var(--amber-soft);color:var(--amber);border-color:#e6d4a8}
-  .p-info{background:var(--blue-wash);color:var(--blue);border-color:var(--blue-soft)}
-  .p-mock{background:#efe7da;color:var(--muted);border-color:var(--line)}
-  pre{font-family:var(--mono);font-size:12px;line-height:1.55;background:#fffdf9;border:1px solid var(--line);border-left:4px solid var(--saffron);padding:16px 18px;overflow-x:auto;margin:16px 0;color:#3a2c20;border-radius:2px}
-  pre.g{border-left-color:var(--green)} pre.b{border-left-color:var(--blue)}
-  .twocol{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-  .layer{background:var(--paper);border:1px solid var(--line);padding:13px 18px;margin:7px 0}
-  .layer .lh{font-family:var(--sans);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--maroon);margin-bottom:3px}
-  .layer .ld{font-size:14px;color:var(--ink)}
-  .ok{color:var(--green);font-weight:700} .no{color:var(--red);font-weight:700}
-  .seal{text-align:center;margin:44px 0 6px;font-family:var(--sans);font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--saffron)}
-  footer{margin-top:50px;padding-top:22px;border-top:1px solid var(--line);color:var(--faint);font-size:12.5px;font-family:var(--sans);line-height:1.6}
-  @media(max-width:820px){.page{padding:24px 18px 70px}.cards{grid-template-columns:1fr 1fr}.twocol{grid-template-columns:1fr}h1{font-size:29px}}
-  @media print{
-    @page{ margin:11mm; }
-    *{ -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
-    html,body{ background:var(--bg); } body{ font-size:10.5pt; line-height:1.5; }
-    .page{ max-width:none; margin:0; padding:2mm 4mm; } .toc{ display:none; }
-    section{ margin-top:18px; } h2{ break-after:avoid; } h3{ break-after:avoid; }
-    .verdict,.cards,.card,.call,.twocol,.twocol>div,.layer,pre,tr{ break-inside:avoid; }
-    a{ color:inherit; text-decoration:none; } footer{ break-inside:avoid; }
-  }
+  .subtitle{color:var(--muted);font-style:italic;font-size:17px;margin:0 auto;max-width:640px}
+  .cards{display:grid;grid-template-columns:1fr;gap:18px}
+  .doc{display:flex;align-items:flex-start;gap:20px;background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--saffron);
+       padding:22px 26px;text-decoration:none;color:inherit;transition:box-shadow .15s ease,transform .15s ease}
+  .doc:hover{box-shadow:0 4px 0 var(--saffron-soft);transform:translateY(-1px)}
+  .doc.g{border-left-color:var(--green)} .doc.b{border-left-color:var(--blue)}
+  .doc .idx{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--saffron);padding-top:4px;min-width:24px}
+  .doc.g .idx{color:var(--green)} .doc.b .idx{color:var(--blue)}
+  .doc .body{flex:1}
+  .doc .kicker{font-family:var(--sans);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--maroon);margin-bottom:5px}
+  .doc .name{font-size:21px;line-height:1.2;margin:0 0 6px}
+  .doc .desc{font-size:14.5px;color:var(--muted);font-family:var(--sans);line-height:1.5}
+  .doc .arrow{align-self:center;font-size:22px;color:var(--faint)}
+  .doc:hover .arrow{color:var(--saffron)}
+  footer{margin-top:48px;padding-top:22px;border-top:1px solid var(--line);color:var(--faint);font-size:12.5px;font-family:var(--sans);line-height:1.6;text-align:center}
+  @media(max-width:820px){.page{padding:30px 18px 70px}h1{font-size:29px}.doc{padding:18px 18px}}
 </style>
 </head>
 <body>
@@ -93,225 +45,46 @@
 
   <header>
     <div class="eyebrow">Isha Foundation, Information Technology</div>
-    <h1>IVM Backend, Integration Test Report</h1>
-    <p class="subtitle">Binding the In-School Operations and Scheduling screens (Seva, Attendance, Interview Scheduling) to the IVM API, and verifying them at two levels: offline contract tests and a live end-to-end run against a real database.</p>
-    <div class="stampline">2026-06-17 &middot; IVM-Backend (Next.js) + ivm-api (Django) &middot; merged to the uat branch, deployed to UAT</div>
+    <h1>IVM Documents</h1>
+    <p class="subtitle">Reports and design notes for the In-School Volunteer Management work. Select a document below.</p>
   </header>
 
-  <div class="toc">
-    <a href="#summary">Summary</a><a href="#scope">Scope</a><a href="#approach">Approach</a><a href="#realdata">Real Data</a><a href="#results">Results</a><a href="#exercised">Coverage</a><a href="#issues">Issues Fixed</a><a href="#structure">Structure</a><a href="#repro">Reproduce</a><a href="#caveats">Caveats</a><a href="#related">Related</a>
-  </div>
-
-  <div class="verdict" id="summary">
-    <div class="vh">In one paragraph</div>
-    <p>Three operational areas of the IVM dashboard were wired to the existing IVM API and tested end to end. Testing runs at two levels. The first is an <strong>offline contract layer</strong> (Vitest) that proves every screen builds the correct request and reads the correct response, with the network mocked. The second is a <strong>live end-to-end run</strong> that drives the actual running stack the way a browser does, against a <strong>real PostgreSQL database</strong> seeded with demo data. Both are green: <strong>434 of 434</strong> Vitest checks pass and <strong>45 of 45</strong> live checks pass, including reads, writes, the CSRF guard and every page route. The data used is real database content created by the repository's seed commands. It is demo data, not production data. The three scheduling screens that began on placeholder data (My Bookings, the Reschedule-needed lane, the Over-cap lane) are now bound to live endpoints, and the work is merged to the uat branch and deployed to UAT.</p>
-  </div>
-
-  <div class="call g"><span class="t">Status</span>Reviewed by an independent verification pass and pushed to <code>uat</code> (commit <code>aa7953a</code>), which auto-deploys to the UAT environment. Real Isha SSO sign-in works on the UAT site, where it cannot on a local machine.</div>
-
   <div class="cards">
-    <div class="card"><div class="big g">434</div><div class="cap">Vitest checks pass (offline contract, 0 failures)</div></div>
-    <div class="card"><div class="big g">45</div><div class="cap">Live end-to-end checks pass against the real stack</div></div>
-    <div class="card"><div class="big b">3</div><div class="cap">Domains bound: Seva, Attendance, Scheduling</div></div>
-    <div class="card"><div class="big">6</div><div class="cap">Real issues found and fixed during testing</div></div>
+
+    <a class="doc" href="./IVM-Integration-Test-Report.html">
+      <div class="idx">01</div>
+      <div class="body">
+        <div class="kicker">Test report</div>
+        <div class="name">IVM Backend — Integration Test Report</div>
+        <div class="desc">Binding the In-School Operations and Scheduling screens (Seva, Attendance, Interview Scheduling) to the IVM API, verified at two levels: offline contract tests and a live end-to-end run against a real database.</div>
+      </div>
+      <div class="arrow">&rarr;</div>
+    </a>
+
+    <a class="doc g" href="./lap-of-master-registration-handoff.html">
+      <div class="idx">02</div>
+      <div class="body">
+        <div class="kicker">Handoff</div>
+        <div class="name">Lap of Master — Registration Handoff</div>
+        <div class="desc">Handoff notes for the Lap of Master registration flow.</div>
+      </div>
+      <div class="arrow">&rarr;</div>
+    </a>
+
+    <a class="doc b" href="./query-param-vs-json-api.html">
+      <div class="idx">03</div>
+      <div class="body">
+        <div class="kicker">Design note</div>
+        <div class="name">Query Param vs JSON API</div>
+        <div class="desc">Design discussion comparing query-parameter and JSON-body API approaches.</div>
+      </div>
+      <div class="arrow">&rarr;</div>
+    </a>
+
   </div>
-
-  <!-- ===== SCOPE ===== -->
-  <section id="scope">
-    <h2><span class="num">1</span> What was built and bound</h2>
-    <div class="rule"></div>
-    <p>Frontend screens in the IVM dashboard, each bound to a live IVM API endpoint. The three scheduling screens that first shipped on placeholder data were rebound to live endpoints once the API exposed them. Only one screen still uses clearly marked placeholder data, because no endpoint exists for it yet.</p>
-    <table>
-      <caption>Bound screens by domain</caption>
-      <thead><tr><th>Domain</th><th>Screens</th><th>Binding</th></tr></thead>
-      <tbody>
-        <tr><td><strong>Seva</strong></td><td>Dashboard, Volunteer Requests (VRF queue), VRF detail and vetting, Allocation (recommend candidates, propose)</td><td><span class="pill p-pass">live API</span></td></tr>
-        <tr><td><strong>Attendance</strong></td><td>Today (live roster, counts, override, link unassigned badge), Sessions (list and create), Excusal Requests (decide)</td><td><span class="pill p-pass">live API</span></td></tr>
-        <tr><td><strong>Scheduling</strong></td><td>My Availability, Interviewer Pool, Caller Profiles, Booking Desk, My Bookings, Reschedule-needed lane, Over-cap lane</td><td><span class="pill p-pass">live API</span></td></tr>
-        <tr><td>Seva</td><td>Dashboard recent-activity feed</td><td><span class="pill p-mock">JSON placeholder, no API yet</span></td></tr>
-      </tbody>
-    </table>
-  </section>
-
-  <!-- ===== APPROACH ===== -->
-  <section id="approach">
-    <h2><span class="num">2</span> Testing approach, two levels</h2>
-    <div class="rule"></div>
-    <div class="twocol">
-      <div class="layer" style="border-left:4px solid var(--blue)">
-        <div class="lh">Level 1, offline contract (Vitest)</div>
-        <div class="ld">Network mocked. Proves each screen builds the right URL, HTTP method, query parameters and request body, and maps the response correctly. Runs in CI with no backend. This is the "is the wiring correct" layer.</div>
-      </div>
-      <div class="layer" style="border-left:4px solid var(--green)">
-        <div class="lh">Level 2, live end to end</div>
-        <div class="ld">A repeatable script drives the real running system the way the browser does, against a real database. Exercises reads, writes, the security guard and every page route, then restores a clean data state. This is the "does it actually work" layer.</div>
-      </div>
-    </div>
-    <div class="call b"><span class="t">Honest distinction</span>Level 1 uses no data at all (the network is mocked). Level 2 uses a <strong>real running stack and a real PostgreSQL database</strong>, populated with <strong>demo</strong> data from the seed commands. It is not production or customer data, and no production data was touched.</div>
-  </section>
-
-  <!-- ===== REAL DATA ===== -->
-  <section id="realdata">
-    <h2><span class="num">3</span> The real-data test, what it ran against</h2>
-    <div class="rule"></div>
-    <p>The live run follows the exact path a browser takes. Same-origin calls hit the Next.js BFF proxy, which reads the session cookie and injects the bearer token, then forwards to the Django API, which reads and writes a real Postgres database.</p>
-    <pre class="g">browser / curl
-  -> http://localhost:9100/api/v1/*        Next.js frontend (IVM-Backend)
-  -> app/api/v1/[...path]/route.ts          BFF proxy: reads ivm_session cookie, injects Bearer JWT,
-                                            requires the x-ivm-auth CSRF header on mutations
-  -> http://localhost:8000/api/v1/*         Django API (ivm-api), JWT auth + role and scope guard
-  -> PostgreSQL  db=ivm @ 127.0.0.1         real rows</pre>
-
-    <h3>The seeded dataset, verified live</h3>
-    <table>
-      <caption>Real rows present at test time</caption>
-      <thead><tr><th>Area</th><th>Data</th></tr></thead>
-      <tbody>
-        <tr><td>Database</td><td>PostgreSQL, database <code>ivm</code> at <code>127.0.0.1</code></td></tr>
-        <tr><td>Programs</td><td><code>sp_cbe_2026</code>, <code>minimal_demo</code>, <code>stv_intake_2026</code>, <code>ltv_2026</code></td></tr>
-        <tr><td>Personas</td><td>22 demo users (<code>admin@ivm.dev</code>, <code>seva@ivm.dev</code>, <code>interviewer@ivm.dev</code>, <code>poc@ivm.dev</code> and more)</td></tr>
-        <tr><td>Participations</td><td>active 9, arrived 1, approved 1</td></tr>
-        <tr><td><strong>Seva</strong></td><td>VRFs: draft 1, submitted 1, returned 1, in progress 4. Assignments: suggested 5, confirmed 4, proposed 2. SevaEvent ledger: 23</td></tr>
-        <tr><td><strong>Scheduling</strong></td><td>Interviewers 1, Callers 2, Slots 8 open and 2 booked</td></tr>
-        <tr><td><strong>Attendance</strong></td><td>Sessions 9 (3 today), Machines 3, Locations 3. Records: present 1, excused 1, absent 2. Unassigned swipe 1, Exceptions pending 1 and approved 1, Reason categories 2</td></tr>
-      </tbody>
-    </table>
-    <div class="call s"><span class="t">Data source, all idempotent</span><code>seed_demo</code> (programs, personas, seva, scheduling), <code>seed_attendance_demo</code> (session series, records, swipes, an excusal), and <code>seed_attendance_extras</code> (added in this work: one pending excusal and one unassigned badge, so the Decide and Link flows have something to act on).</div>
-  </section>
-
-  <!-- ===== RESULTS ===== -->
-  <section id="results">
-    <h2><span class="num">4</span> Results</h2>
-    <div class="rule"></div>
-    <table>
-      <thead><tr><th>Check</th><th>Scope</th><th>Result</th></tr></thead>
-      <tbody>
-        <tr><td>Vitest full suite</td><td>101 files, contract tests for resolver, hooks, generators, navigation</td><td><span class="ok">434 passed, 0 failed</span></td></tr>
-        <tr><td>Live e2e harness</td><td>reads, writes, CSRF guard, page routes, re-seed</td><td><span class="ok">45 passed, 0 failed</span></td></tr>
-        <tr><td>Type check (<code>tsc</code>)</td><td>new and edited files</td><td><span class="ok">clean</span></td></tr>
-        <tr><td>Lint</td><td>new and edited files</td><td><span class="ok">0 errors</span> (repo baseline warnings only)</td></tr>
-      </tbody>
-    </table>
-  </section>
-
-  <!-- ===== COVERAGE ===== -->
-  <section id="exercised">
-    <h2><span class="num">5</span> What the live run exercised</h2>
-    <div class="rule"></div>
-    <table>
-      <thead><tr><th>Type</th><th>Checks against real rows</th><th>Result</th></tr></thead>
-      <tbody>
-        <tr><td>Reads</td><td>Every bound endpoint across Seva, Scheduling, Attendance (queues, detail, candidates, fulfilment, dashboard, roster, swipes, exceptions, catalogues)</td><td><span class="pill p-pass">200, with data</span></td></tr>
-        <tr><td>Security</td><td>A mutation sent without the CSRF header</td><td><span class="pill p-pass">correctly blocked, 403</span></td></tr>
-        <tr><td>Writes</td><td>Seva vet-approve and propose, Scheduling publish and cancel a slot, Attendance decide an excusal, override a record, link an unassigned badge</td><td><span class="pill p-pass">all succeeded</span></td></tr>
-        <tr><td>Business rule</td><td>Proposing a volunteer already linked to a VRF</td><td><span class="pill p-info">guard fired, 409 (correct)</span></td></tr>
-        <tr><td>Pages</td><td>All 13 screen routes render server-side</td><td><span class="pill p-pass">200</span></td></tr>
-        <tr><td>Restore</td><td>Re-seed after the run</td><td><span class="pill p-pass">clean state restored</span></td></tr>
-      </tbody>
-    </table>
-  </section>
-
-  <!-- ===== ISSUES ===== -->
-  <section id="issues">
-    <h2><span class="num">6</span> Real defects found and fixed during testing</h2>
-    <div class="rule"></div>
-    <p>The live run earned its keep. Six issues only a real end-to-end pass would surface, the last two during the round that rebound the scheduling screens.</p>
-    <table>
-      <thead><tr><th>Issue</th><th>Cause</th><th>Fix</th></tr></thead>
-      <tbody>
-        <tr><td>Attendance list calls failed through the proxy</td><td>The frontend uses a BFF proxy, not a rewrite. It strips a trailing slash, and the API serves its collection routes with one. An earlier trailing-slash workaround was wrong for this path.</td><td>Send the no-slash form. The BFF follows the API redirect for reads server-side.</td></tr>
-        <tr><td>Re-seed could not restore state</td><td>The shared reset deletes participants, but the attendance tables hold protected references to them, and the swipe and audit tables are append-only (deletes are blocked by a trigger).</td><td>Re-seed now truncates the attendance and audit tables first (truncate bypasses the trigger and the reference ordering), then resets.</td></tr>
-        <tr><td>Auth header ignored</td><td>The proxy reads the session cookie and injects the token itself. A bearer header passed by hand is dropped.</td><td>Test through the session cookie, the way the browser authenticates.</td></tr>
-        <tr><td>Propose returned a conflict</td><td>Not a defect. The "one volunteer per VRF" business guard fired on a volunteer already linked.</td><td>The test now treats the guard as a valid outcome and confirms a clean propose on fresh data.</td></tr>
-        <tr><td>New scheduling endpoints returned a server error</td><td>The four new fields (caller-unavailable, interviewer gender / overseas / timezone, caller call-window) had unapplied database migrations on the running environment.</td><td>Applied the pending migrations. The endpoints then returned data.</td></tr>
-        <tr><td>Re-seed broke after the API update</td><td>When the API was updated to add the new endpoints, the local seed helper that tops up the demo data was removed from the working tree.</td><td>Recreated the helper. Re-seed restores a clean state again.</td></tr>
-      </tbody>
-    </table>
-  </section>
-
-  <!-- ===== STRUCTURE ===== -->
-  <section id="structure">
-    <h2><span class="num">7</span> Canonical structure of the work</h2>
-    <div class="rule"></div>
-    <pre class="b">ivm-api/   (Django API + real database)
-  attendance/management/commands/
-    seed_attendance_extras.py          NEW   pending excusal + unassigned badge for the UI flows
-
-IVM-Backend/   (Next.js frontend)
-  common/api/apiEndpointResolver.ts        EDIT  + seva / attendance / scheduling URL builders
-  common/api/apiEndpointResolver.test.ts   EDIT  + URL assertions (Vitest)
-  common/interface/endpoints-interface.ts  EDIT  + endpoint names
-  common/interface/api-dto.ts              EDIT  + typed shapes mirroring the API
-  common/constant/scheduling-mock.json     NEW   placeholder data (screens with no API yet)
-  common/constant/ops-mock.json            NEW   placeholder data (dashboard activity)
-  hooks/
-    use-seva.ts  use-attendance.ts  use-scheduling.ts  use-availability.ts   NEW  data hooks
-    use-seva.test.ts  use-attendance.test.ts  use-scheduling.test.ts          NEW  contract tests
-    use-availability.test.ts                                                  NEW  contract tests
-    use-scheduling-mock.ts  use-ops-mock.ts                                   NEW  placeholder loaders
-    use-app-navigation.ts (+ .test.ts)      EDIT  Seva / Attendance / Scheduling nav sections
-  lib/scheduling.ts (+ .test.ts)            NEW   slot generation helpers + tests
-  lib/ops-badges.ts                         NEW   status to colour mapping
-  components/features/{seva,attendance,scheduling}/*.tsx   NEW  the screens
-  app/(shell)/{seva,attendance,scheduling}/**/page.tsx     NEW  the routes
-  scripts/ops-integration-e2e.sh            NEW   the live end-to-end harness</pre>
-  </section>
-
-  <!-- ===== REPRODUCE ===== -->
-  <section id="repro">
-    <h2><span class="num">8</span> How to reproduce</h2>
-    <div class="rule"></div>
-    <pre># 1. Seed the real database (idempotent, safe to re-run)
-cd ivm-api
-.venv/bin/python manage.py seed_demo
-.venv/bin/python manage.py seed_attendance_demo
-.venv/bin/python manage.py seed_attendance_extras
-
-# 2. Run the stack: API on :8000 (DEBUG on), frontend on :9100
-
-# 3. Live end-to-end run (real data, mutates demo rows, then re-seeds)
-cd ../IVM-Backend
-bash scripts/ops-integration-e2e.sh
-
-# Offline contract tests (no backend needed)
-pnpm exec vitest run</pre>
-    <div class="call g"><span class="t">To click through it yourself</span>Open <code>http://localhost:9100/auth/dev?as=admin@ivm.dev</code> to sign in as the persona that can see and act on every Seva and Attendance screen, then use the sidebar. For My Availability use <code>interviewer@ivm.dev</code>, who owns the published slots.</div>
-  </section>
-
-  <!-- ===== CAVEATS ===== -->
-  <section id="caveats">
-    <h2><span class="num">9</span> Caveats and known limitations</h2>
-    <div class="rule"></div>
-    <ul>
-      <li><strong>Demo data, not production.</strong> Everything was tested against seeded demo data. No production or customer data was read or changed.</li>
-      <li><strong>One screen still on placeholder data.</strong> The Seva dashboard recent-activity feed has no API endpoint yet, so it reads a JSON file. Everything else is bound to live endpoints.</li>
-      <li><strong>The seed helper lives in the API repo and is untracked.</strong> <code>seed_attendance_extras.py</code> is a local helper in <code>ivm-api</code>. It is not part of the frontend push and is removed whenever the API code updates, so the backend team should commit it if it is to persist.</li>
-      <li><strong>One write is not yet bound through the proxy.</strong> Creating a single one-off session posts to a collection route that the proxy cannot reach cleanly (the API will not append a slash on a POST). Every other action and all reads work. The fix belongs on the API side (a no-slash alias) or by using the recurring-series endpoint instead.</li>
-      <li><strong>Names show as identifiers in two places.</strong> Attendance records and excusals display <code>Participant #id</code> because those API responses carry only the id, not a name. This is an API response shape, not a test gap.</li>
-      <li><strong>Repository baseline.</strong> The frontend repository had pre-existing type and lint notes in test and generated files before this work. The new files add none.</li>
-    </ul>
-  </section>
-
-  <!-- ===== RELATED ===== -->
-  <section id="related">
-    <h2><span class="num">10</span> Related documents</h2>
-    <div class="rule"></div>
-    <div class="twocol">
-      <a class="layer" style="border-left:4px solid var(--saffron);text-decoration:none;color:inherit;display:block" href="./lap-of-master-registration-handoff.html">
-        <div class="lh">Handoff</div>
-        <div class="ld">Lap of Master &mdash; Registration Handoff &rarr;</div>
-      </a>
-      <a class="layer" style="border-left:4px solid var(--blue);text-decoration:none;color:inherit;display:block" href="./query-param-vs-json-api.html">
-        <div class="lh">Design note</div>
-        <div class="ld">Query Param vs JSON API &rarr;</div>
-      </a>
-    </div>
-  </section>
-
-  <div class="seal">Isha Foundation &middot; IVM Backend &middot; Integration Test Report</div>
 
   <footer>
-    Prepared for team review. Two test levels: offline contract (Vitest, network mocked) and live end to end (real running stack and PostgreSQL, demo data). Figures verified on 2026-06-17 against the running system. The live harness is committed at <code>IVM-Backend/scripts/ops-integration-e2e.sh</code> and is repeatable.
+    Isha Foundation &middot; Information Technology &middot; IVM Backend
   </footer>
 
 </div>
