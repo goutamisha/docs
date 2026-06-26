@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>IVM — Direct vs BFF (API access architecture)</title>
+<style>
+  /* Isha Backend Design System tokens, inlined so the page is self-contained
+     (no external stylesheet) and works as a standalone GitHub Pages file. */
+  :root {
+    --primary: #c16125;
+    --primary-foreground: #ffffff;
+    --primary-hover: #a8521e;
+    --primary-soft: #f6ece4;
+    --background: oklch(0.976 0.003 264.542);
+    --foreground: oklch(0.145 0 0);
+    --card: #ffffff;
+    --card-foreground: oklch(0.145 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --border: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
+    --status-success-bg: oklch(0.95 0.05 152);
+    --status-success-fg: oklch(0.52 0.13 152);
+    --status-info-bg: #dbeafe;
+    --status-info-fg: #1e40af;
+    --status-warning-bg: #fef3c7;
+    --status-warning-fg: #92400e;
+    --status-neutral-bg: #f1f5f9;
+    --status-neutral-fg: #334155;
+    --status-template-bg: #ede9fe;
+    --status-template-fg: #5b21b6;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-full: 9999px;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --font-display: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--background); color: var(--foreground); font-family: var(--font-sans); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  .page { max-width: 940px; margin: 0 auto; padding: 40px 28px 90px; }
+
+  header { border-bottom: 1px solid var(--border); padding-bottom: 22px; margin-bottom: 26px; }
+  .eyebrow { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--primary); font-weight: 700; }
+  h1 { font-family: var(--font-display); font-size: 30px; font-weight: 600; margin: 12px 0 8px; letter-spacing: .01em; }
+  .sub { color: var(--muted-foreground); font-size: 15px; max-width: 70ch; margin: 0; }
+  .stamp { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted-foreground); margin-top: 14px; }
+
+  h2 { font-family: var(--font-display); font-size: 20px; font-weight: 600; margin: 38px 0 6px; display: flex; align-items: baseline; gap: 10px; }
+  h2 .n { font-family: var(--font-mono); font-size: 13px; color: var(--primary); font-weight: 700; }
+  h2 + .rule { height: 1px; background: var(--border); margin: 0 0 16px; }
+  h3 { font-size: 14px; font-weight: 700; margin: 18px 0 8px; }
+  p { margin: 10px 0; }
+  code { font-family: var(--font-mono); font-size: 12.5px; background: var(--muted); padding: 1px 6px; border-radius: var(--radius-sm); color: var(--foreground); }
+  strong { color: var(--foreground); font-weight: 700; }
+
+  .callout { border: 1px solid var(--border); border-left: 4px solid var(--primary); background: var(--card); border-radius: var(--radius-md); padding: 16px 20px; margin: 18px 0; }
+  .callout.warn { border-left-color: var(--status-warning-fg); background: var(--status-warning-bg); }
+  .callout.good { border-left-color: var(--status-success-fg); background: var(--status-success-bg); }
+  .callout .lbl { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; font-weight: 700; color: var(--primary); margin-bottom: 6px; }
+  .callout.warn .lbl { color: var(--status-warning-fg); }
+  .callout.good .lbl { color: var(--status-success-fg); }
+  .callout p { margin: 6px 0; font-size: 14.5px; }
+
+  /* two model cards with flow diagrams */
+  .models { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .model { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--card); padding: 18px; }
+  .model h3 { margin-top: 0; display: flex; align-items: center; gap: 8px; }
+  .flow { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+  .node { font-family: var(--font-mono); font-size: 11.5px; padding: 6px 9px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--background); white-space: nowrap; }
+  .node.key { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); font-weight: 700; }
+  .arr { color: var(--muted-foreground); font-size: 13px; }
+  .model .desc { font-size: 13px; color: var(--muted-foreground); margin: 6px 0 0; }
+
+  table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 13.5px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted-foreground); border-bottom: 2px solid var(--border); }
+  tbody tr:hover { background: color-mix(in oklab, var(--primary) 6%, transparent); }
+  td.dim { font-weight: 600; width: 26%; }
+  .win { font-family: var(--font-mono); font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: var(--radius-full); white-space: nowrap; }
+  .win.bff { background: var(--status-info-bg); color: var(--status-info-fg); }
+  .win.direct { background: var(--status-template-bg); color: var(--status-template-fg); }
+  .win.tie { background: var(--status-neutral-bg); color: var(--status-neutral-fg); }
+
+  ul { margin: 8px 0; padding-left: 20px; }
+  li { margin: 5px 0; }
+  .key-legend { font-size: 12px; color: var(--muted-foreground); margin: 4px 0 0; }
+  footer { margin-top: 50px; padding-top: 16px; border-top: 1px solid var(--border); color: var(--muted-foreground); font-size: 12px; }
+  @media (max-width: 720px){ .models { grid-template-columns: 1fr; } td.dim { width: auto; } }
+  @media print { body { background: #fff; } .page { max-width: none; } tbody tr:hover { background: none; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="eyebrow">Isha Foundation IT · IVM · Architecture Note</div>
+    <h1>API access: Direct vs BFF</h1>
+    <p class="sub">How the browser reaches the IVM API — calling the API directly (the PRS pattern) versus routing through a Backend‑for‑Frontend proxy (the current IVM dashboard pattern). Short comparison, with the decision for IVM's domains.</p>
+    <div class="stamp">v1 · ivm-dashboard / ivm-pwa / ivm-api</div>
+  </header>
+
+  <div class="callout good">
+    <div class="lbl">Verdict for IVM today</div>
+    <p><strong>Keep the BFF.</strong> While the frontends live on <code>*.netlify.app</code> and the API on <code>*.sadhguru.org</code>, the Direct model cannot work in the browser (third‑party cookies are blocked; <code>netlify.app</code> is a public suffix so no shared cookie). The BFF works on these domains and survives the move to real domains.</p>
+    <p><strong>Later</strong>, once the frontends are served under <code>*.ivm.sadhguru.org</code> (same site as the API), Direct becomes a real option — useful if you want cross‑app SSO and the best fit for real‑time + heavy media.</p>
+  </div>
+
+  <h2><span class="n">01</span> The two models</h2>
+  <div class="rule"></div>
+  <div class="models">
+    <div class="model">
+      <h3>BFF (current IVM)</h3>
+      <div class="flow">
+        <span class="node">Browser</span><span class="arr">→</span>
+        <span class="node key">BFF proxy</span><span class="arr">→</span>
+        <span class="node">API</span>
+      </div>
+      <p class="desc">Browser calls its <strong>own origin</strong> <code>/api/v1/*</code>. The BFF reads a <strong>same‑origin HttpOnly cookie</strong>, injects <code>Authorization: Bearer</code>, and forwards. The API only ever sees a Bearer token.</p>
+    </div>
+    <div class="model">
+      <h3>Direct (PRS)</h3>
+      <div class="flow">
+        <span class="node">Browser</span><span class="arr">→</span>
+        <span class="node key">API</span>
+      </div>
+      <p class="desc">Browser calls the API <strong>directly</strong> (different subdomain) with <code>withCredentials</code>. The token rides a <strong>parent‑domain HttpOnly cookie</strong> (<code>.sadhguru.org</code>) the API reads itself; identity via <code>/auth/me</code>.</p>
+    </div>
+  </div>
+
+  <h2><span class="n">02</span> Side‑by‑side</h2>
+  <div class="rule"></div>
+  <table>
+    <thead><tr><th>Dimension</th><th>Direct (PRS)</th><th>BFF (IVM)</th><th>Better</th></tr></thead>
+    <tbody>
+      <tr><td class="dim">Token out of JS</td><td>HttpOnly cookie</td><td>HttpOnly cookie</td><td><span class="win tie">tie</span></td></tr>
+      <tr><td class="dim">Cookie blast radius</td><td>whole parent domain</td><td>single origin</td><td><span class="win bff">BFF</span></td></tr>
+      <tr><td class="dim">CORS</td><td>required (strict allow‑list)</td><td>none (same‑origin)</td><td><span class="win bff">BFF</span></td></tr>
+      <tr><td class="dim">CSRF</td><td>must add explicitly</td><td>custom‑header built in</td><td><span class="win bff">BFF</span></td></tr>
+      <tr><td class="dim">Latency</td><td>1 hop</td><td>+1 hop (proxy)</td><td><span class="win direct">Direct</span></td></tr>
+      <tr><td class="dim">Per‑request cost</td><td>none (static FE)</td><td>serverless function</td><td><span class="win direct">Direct</span></td></tr>
+      <tr><td class="dim">Real‑time (WebSocket/SSE)</td><td>fine</td><td>poor fit (req/response)</td><td><span class="win direct">Direct</span></td></tr>
+      <tr><td class="dim">Heavy media upload/stream</td><td>direct to storage</td><td>buffered through proxy</td><td><span class="win direct">Direct</span></td></tr>
+      <tr><td class="dim">Cross‑app SSO (shared parent domain)</td><td>shared cookie</td><td>per‑origin only</td><td><span class="win direct">Direct</span></td></tr>
+      <tr><td class="dim">Multi‑client (mobile / S2S)</td><td>cookie + Bearer</td><td>web‑only (Bearer direct)</td><td><span class="win direct">Direct</span></td></tr>
+      <tr><td class="dim">Request‑transform seam<br><span class="key-legend">(e.g. the If‑Match/CDN fix)</span></td><td>none</td><td>one place to fix</td><td><span class="win bff">BFF</span></td></tr>
+      <tr><td class="dim">Failure clarity</td><td>opaque CORS/cookie errors</td><td>centralized (502/401)</td><td><span class="win bff">BFF</span></td></tr>
+      <tr><td class="dim">Works across registrable‑domain split<br><span class="key-legend">(netlify.app FE + sadhguru.org API)</span></td><td>no (3rd‑party cookie / PSL)</td><td>yes</td><td><span class="win bff">BFF</span></td></tr>
+    </tbody>
+  </table>
+  <p class="key-legend"><strong>Note:</strong> CORS is <em>not</em> CSRF protection — it guards reading responses, not the write reaching the server. Cookie‑auth always needs an explicit CSRF defence on mutations.</p>
+
+  <h2><span class="n">03</span> The domain reality (the deciding factor)</h2>
+  <div class="rule"></div>
+  <p>The choice is forced by where the apps are hosted:</p>
+  <ul>
+    <li>Frontends: <code>ivm-dashboard.netlify.app</code>, <code>ivm-pwa.netlify.app</code> (UAT: <code>uat--…</code>)</li>
+    <li>API: <code>ivm-api.sadhguru.org</code> (UAT: <code>uat-ivm-api.sadhguru.org</code>)</li>
+  </ul>
+  <div class="callout warn">
+    <div class="lbl">Why Direct can't work on these domains</div>
+    <p><strong>1. Different registrable domains.</strong> <code>netlify.app</code> ≠ <code>sadhguru.org</code> → a frontend calling the API is <strong>cross‑site</strong>, so the cookie is third‑party. Safari blocks it; Chrome is phasing it out — even with <code>SameSite=None</code>.</p>
+    <p><strong>2. <code>netlify.app</code> is on the Public Suffix List.</strong> Browsers reject any cookie scoped to <code>.netlify.app</code>, and treat <code>dashboard.netlify.app</code> / <code>pwa.netlify.app</code> as <strong>separate sites</strong> — so no shared cookie / no cross‑app SSO is possible there at all.</p>
+  </div>
+  <p>PRS's multi‑domain trick (one facade serving <code>.sadhguru.org</code> <em>and</em> <code>.lingabhairavi.org</code>) works only because, for each brand, the <strong>frontend and API share one registrable domain</strong>. The same trick can serve <code>.sadhguru.org</code> for IVM — but it can never include <code>netlify.app</code>.</p>
+
+  <h2><span class="n">04</span> Recommendation &amp; sequence</h2>
+  <div class="rule"></div>
+  <table>
+    <thead><tr><th>Phase</th><th>Setup</th><th>Model</th></tr></thead>
+    <tbody>
+      <tr><td class="dim">Now</td><td>FE on <code>*.netlify.app</code>, API on <code>*.sadhguru.org</code></td><td><span class="win bff">BFF</span> — only model that works; Direct is blocked by the browser</td></tr>
+      <tr><td class="dim">After custom domains</td><td>FE on <code>*.ivm.sadhguru.org</code> (same‑site as API)</td><td>Either. Adopt <span class="win direct">Direct / hybrid</span> only if you want cross‑app SSO or better real‑time/media; BFF still works.</td></tr>
+    </tbody>
+  </table>
+  <h3>If/when you go Direct, the non‑negotiables</h3>
+  <ul>
+    <li><strong>CORS:</strong> strict origin allow‑list + <code>Allow‑Credentials: true</code> + <code>Vary: Origin</code>. Never <code>*</code> with credentials.</li>
+    <li><strong>CSRF:</strong> require a custom header on mutations (forces a preflight your allow‑list denies) or a double‑submit token. The must‑not‑skip item.</li>
+    <li><strong>Cookie:</strong> <code>HttpOnly; Secure; SameSite=Lax; Domain=.ivm.sadhguru.org</code> (narrowest parent), reuse PRS's per‑request domain allow‑list.</li>
+    <li><strong>CSP</strong> on every frontend (a wider cookie domain makes XSS on any sibling app worse).</li>
+  </ul>
+  <h3>Real‑time &amp; heavy media (handle the same way in both models)</h3>
+  <ul>
+    <li><strong>Don't auth these with cookies.</strong> Fetch a short‑lived token (via the BFF or <code>/auth</code>) and pass it to a dedicated WebSocket/SSE service.</li>
+    <li><strong>Media:</strong> use presigned URLs straight to storage — bypasses any proxy, works on any domain.</li>
+  </ul>
+
+  <div class="callout">
+    <div class="lbl">One line</div>
+    <p>Direct is faster and better for SSO/real‑time, but <strong>can't run on the current <code>netlify.app</code> + <code>sadhguru.org</code> split</strong>. Stay on the BFF now; revisit Direct/hybrid only after the frontends move under <code>*.ivm.sadhguru.org</code>. Either way, keep the API <code>Bearer</code>‑capable and put <code>expected_version</code> in the body so no CDN can ever strip it.</p>
+  </div>
+
+  <footer>
+    BFF = Backend for Frontend. Direct = browser → API with a shared parent‑domain cookie (PRS pattern). Generated as an internal architecture note for IVM.
+  </footer>
+
+</div>
+</body>
+</html>
