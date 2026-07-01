@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>IVM Sadhanapada Application Flow</title>
+<style>
+  :root{
+    --bg:#faf6f0; --paper:#ffffff; --paper2:#fcf9f4; --ink:#2b2118; --muted:#6b5a4a; --faint:#9a8a78;
+    --line:#d9cbb8; --line-soft:#e7ddcd;
+    --saffron:#c75b12; --saffron-soft:#f3e0cf; --saffron-wash:#fbf1e7;
+    --maroon:#6e2a1e; --gold:#b58a3c; --green:#4a6b3a; --green-soft:#e7eede; --green-wash:#f1f5ea;
+    --red:#a8341f; --red-soft:#f6e2dc; --amber:#9a6b16; --amber-soft:#f6ecd6;
+    --serif:"Georgia","Iowan Old Style","Palatino Linotype",serif;
+    --sans:"Helvetica Neue",Arial,sans-serif;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--serif);line-height:1.62;font-size:16.5px;-webkit-font-smoothing:antialiased}
+  .page{max-width:1080px;margin:0 auto;padding:40px 40px 100px}
+  header{text-align:center;border-bottom:1px solid var(--line);padding-bottom:30px;margin-bottom:14px}
+  .eyebrow{font-family:var(--sans);letter-spacing:.32em;text-transform:uppercase;font-size:11px;color:var(--saffron);margin-bottom:14px}
+  h1{font-size:40px;font-weight:400;margin:0 0 12px;letter-spacing:.01em;line-height:1.1}
+  .subtitle{color:var(--muted);font-style:italic;font-size:17px;margin:0 auto;max-width:760px}
+  .stampline{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-top:18px;letter-spacing:.02em}
+  section{margin-top:50px}
+  h2{font-family:var(--serif);font-size:25px;font-weight:400;margin:0 0 4px;letter-spacing:.01em;display:flex;align-items:baseline;gap:14px}
+  h2 .num{font-family:var(--mono);font-size:14px;color:var(--saffron);font-weight:700}
+  h2 + .rule{height:1px;background:var(--line);margin:14px 0 20px}
+  h3{font-family:var(--sans);font-size:13px;text-transform:uppercase;letter-spacing:.16em;color:var(--maroon);margin:28px 0 10px;font-weight:700}
+  p{margin:13px 0}
+  strong{color:var(--maroon);font-weight:700}
+  code{font-family:var(--mono);font-size:12.5px;background:var(--saffron-wash);border:1px solid var(--line-soft);padding:1px 6px;border-radius:3px;color:var(--maroon)}
+  ul{margin:12px 0;padding-left:22px}
+  li{margin:7px 0}
+  .call{padding:16px 22px;margin:18px 0;border:1px solid var(--line)}
+  .call.s{background:var(--saffron-wash);border-color:var(--saffron-soft)}
+  .call.g{background:var(--green-wash);border-color:var(--green-soft)}
+  .call.r{background:var(--red-soft);border-color:#e8c4ba}
+  .call .t{font-family:var(--sans);font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;display:block;margin-bottom:6px}
+  .call.s .t{color:var(--saffron)} .call.g .t{color:var(--green)} .call.r .t{color:var(--red)}
+  .call p{margin:4px 0;font-size:15px}
+  .svgwrap{background:var(--paper);border:1px solid var(--line);padding:22px 18px;margin:18px 0;border-radius:2px}
+  .svgwrap .mermaid{display:flex;justify-content:center}
+  .svgwrap svg{width:100%;height:auto;display:block}
+  .legend{font-family:var(--sans);font-size:11px;color:var(--muted);margin-top:16px;display:flex;flex-wrap:wrap;gap:18px;justify-content:center}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .legend i{width:14px;height:14px;display:inline-block;border-radius:2px;border:1.5px solid}
+  .l-stage{background:var(--paper2);border-color:var(--line)}
+  .l-lane{background:var(--amber-soft);border-color:#e6d4a8}
+  .l-ok{background:var(--green-wash);border-color:var(--green)}
+  .l-rej{background:var(--red-soft);border-color:var(--red)}
+  footer{margin-top:56px;border-top:1px solid var(--line);padding-top:16px;font-family:var(--sans);font-size:12px;color:var(--faint);text-align:center}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="eyebrow">IVM &middot; Application Plane</div>
+    <h1>Sadhanapada Application Flow</h1>
+    <p class="subtitle">The per program pipeline the engine walks, from an applicant's arrival off the IRS interest form through screening, outreach, interview, review and the health lane, to a terminal outcome.</p>
+    <div class="stampline">Source fixtures/definitions/sadhanapada.json &middot; version 1 &middot; generated 2026-07-01</div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span> The pipeline</h2>
+    <div class="rule"></div>
+    <p>
+      Each box is a stage, each arrow is a decision that moves the application to another stage. Self actions
+      (Hold, Cancel, Request Info, Record Opinion, Callback, No Answer, Start Trial, Verify Documents, Enable
+      Arrivals) hold the same stage and are left off the arrows so the flow stays legible. Arrows marked
+      <em>guarded</em> only become available once the decision's guard holds.
+    </p>
+
+    <div class="svgwrap">
+      <pre class="mermaid">
+flowchart TD
+    IRS([IRS interest form]) --> ES
+
+    ES[Eligibility Screening]
+    CALL[Outreach: Video, RF and FPF]
+    VC[Video Call]
+    AI[Additional Interview]
+    FR[First Review]
+    TR[Trial]
+    FIN[Final Review]
+    ARR[Arrivals]
+    RH{{Rejected / Reassessment}}
+
+    ES -->|Pass Screening guarded| CALL
+    ES -->|Reject| RH
+    CALL -->|Ready for Interview guarded| VC
+    VC -->|Submit Feedback guarded| FR
+    VC -->|Needs Second Interview guarded| AI
+    AI -->|Submit Feedback guarded| FR
+    FR -->|Selected| FIN
+    FR -->|Selected with Trial Period| FIN
+    FR -->|Trial is a Must| TR
+    FR -->|Not Selected| RH
+    TR -->|Trial Completed| FIN
+    TR -->|Approve Wave Off| FIN
+    TR -->|Skip Trial, medical not cleared guarded| FIN
+    FIN -->|Approve| ARR
+    FIN -->|Approve with Trial Period| ARR
+    FIN -->|Trial is a Must| TR
+    FIN -->|Not Approved| RH
+    ARR -->|Confirm Arrival guarded| APP([Approved])
+    ARR -->|Confirm Arrival TP guarded| APPTP([Approved with Trial Period])
+
+    RH -->|Reassess Screening guarded| ES
+    RH -->|Reassess First Review guarded| FR
+    RH -->|Reassess Final Review guarded| FIN
+    RH -->|Confirm Rejection| REJ([Rejected])
+
+    subgraph HEALTH [Health lane: opens at First Review, runs concurrent]
+      MED[Health Assessment]
+      EXC[Exception Review]
+    end
+    FR -.opens.-> HEALTH
+    MED -->|Trial is a Must, Aarogya guarded| TR
+    EXC -->|Not Approved| RH
+
+    classDef start fill:#fbf1e7,stroke:#c75b12,color:#6e2a1e;
+    classDef stage fill:#fcf9f4,stroke:#d9cbb8,color:#2b2118;
+    classDef hold fill:#f6e2dc,stroke:#a8341f,color:#6e2a1e;
+    classDef term fill:#f1f5ea,stroke:#4a6b3a,color:#33502a;
+    classDef lane fill:#f6ecd6,stroke:#9a6b16,color:#6e2a1e;
+    class IRS start;
+    class ES,CALL,VC,AI,FR,TR,FIN,ARR stage;
+    class RH hold;
+    class APP,APPTP term;
+    class REJ term;
+    class MED,EXC lane;
+    </pre>
+    </div>
+    <div class="legend">
+      <span><i class="l-stage"></i> Stage</span>
+      <span><i class="l-lane"></i> Health lane (concurrent)</span>
+      <span><i class="l-ok"></i> Terminal outcome</span>
+      <span><i class="l-rej"></i> Rejected / reassessment</span>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span> Reading the flow</h2>
+    <div class="rule"></div>
+    <ul>
+      <li><strong>Happy path.</strong> Eligibility Screening, Outreach, Video Call, First Review, Final Review, Arrivals, Approved.</li>
+      <li><strong>Interview branch.</strong> Video Call can route to an Additional Interview, which feeds back into First Review.</li>
+      <li><strong>Trial branch.</strong> First Review and Final Review can send an applicant to Trial, and Trial rejoins at Final Review.</li>
+      <li><strong>Health lane.</strong> Health Assessment and Exception Review open at First Review and run concurrently, they do not block the main line until a review gate needs them.</li>
+      <li><strong>Rejected / Reassessment.</strong> A holding stage. It can reassess back into Screening, First Review, or Final Review, or confirm the Rejected outcome.</li>
+    </ul>
+
+    <div class="call g">
+      <span class="t">Terminal outcomes</span>
+      <p>Approved and Approved with Trial Period (both from Arrivals), and Rejected (from Rejected / Reassessment). These are the only three ways an application leaves the pipeline.</p>
+    </div>
+
+    <div class="call s">
+      <span class="t">Source of truth</span>
+      <p>The running definition decides the shape, not this picture. If the pipeline definition changes, regenerate this diagram from <code>sadhanapada.json</code> so it stays truthful.</p>
+    </div>
+  </section>
+
+  <footer>IVM &middot; Sadhanapada application pipeline &middot; rendered from the program definition</footer>
+</div>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: "base",
+    themeVariables: {
+      background: "#ffffff",
+      primaryColor: "#fcf9f4",
+      primaryBorderColor: "#d9cbb8",
+      primaryTextColor: "#2b2118",
+      lineColor: "#9a8a78",
+      tertiaryColor: "#faf6f0",
+      clusterBkg: "#fbf1e7",
+      clusterBorder: "#e6d4a8",
+      edgeLabelBackground: "#faf6f0",
+      fontFamily: "Georgia, 'Iowan Old Style', serif",
+      fontSize: "15px"
+    },
+    flowchart: { curve: "basis", nodeSpacing: 42, rankSpacing: 46 }
+  });
+</script>
+</body>
+</html>
